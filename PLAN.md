@@ -51,7 +51,7 @@ persistent storage.
   - `apps/service`: Fastify. In-memory store, pure state machine, idempotency keys,
     optimistic versioning. Reprices every order; rejects a mismatched `expectedTotalCents`.
   - `apps/web`: Vite + React. Calls `priceOrder()` on every change.
-- **Money:** integer cents; rates in basis points; `applyRate` rounds half-up with integer math.
+- **Money:** integer cents; rates in basis points; `applyRate` rounds half to even with integer math.
   Each percentage is applied once at order level.
 - **Extensibility:** sizes, categories (with rate) and toppings are data. A promo is
   `{code, conflictsWith[], evaluate({subtotal, pizzaCount}) → {eligible, discount | reason}}` in a registry.

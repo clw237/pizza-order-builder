@@ -105,7 +105,9 @@ Where the brief left something open, this is what I decided. Each one is impleme
 2. **Order of operations:** subtotal → promo discount → tax on the discounted subtotal → tip →
    total. "Tax on the total order" is read as the discounted food total, before tip.
 3. **Rounding:** money is integer cents. Discount, tax and a percentage tip are each rounded once,
-   half-up, at the order level (never per line). Example: tax on $5.00 is 32.5¢ → 33¢.
+   half to even (banker's rounding), at the order level (never per line). An exact half cent goes
+   to the even cent, so ties don't always round up. Example: tax on $5.00 is 32.5¢ → 32¢, and tax
+   on $7.00 is 45.5¢ → 46¢.
 4. **Tip percentage** is of the bill after discount and tax. The tip is not taxed.
 5. **SAVE5** needs a subtotal strictly over $20.00, measured before tax and before any discount.
    At exactly $20.00 it does not apply.
@@ -136,9 +138,10 @@ Where the brief left something open, this is what I decided. Each one is impleme
 ### Money and the order total
 
 Money is an integer number of cents everywhere; percentages are basis points (8% = 800).
-`applyRate(amount, rate)` computes `floor((amount × rate + 5000) / 10000)`, a half-up rounding in
-integer arithmetic, so no floating-point value ever represents money. Tips arrive as text and are
-parsed straight into cents or basis points.
+`applyRate(amount, rate)` splits `amount × rate` into whole cents and a remainder out of 10000,
+and sends a remainder of exactly 5000 to the even cent: half-to-even rounding in integer
+arithmetic, so no floating-point value ever represents money. Tips arrive as text and are parsed
+straight into cents or basis points.
 
 All pricing lives in one pure function, `priceOrder(order, menu, promos)` in `packages/pricing`.
 **It runs in both places, and the service is the authority.** The builder calls it on every change
@@ -223,7 +226,7 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 
 | Invariant                                                                                                                                                                              | Why                                                                                         | Tests                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Every worked price matches the cent, including half-cent cases                                                                                                                         | Pricing correctness is the top priority                                                     | P-1…P-8, PR-1…PR-12, T-1…T-3                            |
+| Every worked price matches the cent, including half-cent cases                                                                                                                         | Pricing correctness is the top priority                                                     | P-1…P-8, PR-1…PR-12, T-1…T-3, T-6                       |
 | The breakdown adds up; every amount is a non-negative integer; discount ≤ subtotal; line order doesn't matter; tip never changes tax; the two conflicting codes are never both applied | Must hold for every order, not just examples, so they are property tests over random orders | INV-1…INV-6                                             |
 | The service charges exactly what the shared function computes, and rejects a different expected total                                                                                  | "The total the customer sees must match the total charged"                                  | RT-1, RT-2                                              |
 | A retried submit or update is applied once; a reused key with a different body is rejected                                                                                             | Customers on mobile will retry                                                              | S-2, S-3, S-8, S-17 (including a 5xx on the last retry) |
@@ -267,7 +270,7 @@ myself.
   restaurant's menu, so it was moved out of scope.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test, and the two most important tests were checked by
-  breaking the code on purpose: switching rounding to truncation fails 9 pricing tests, and adding one
+  breaking the code on purpose: switching rounding to truncation fails 15 tests, and adding one
   `await` inside a status change makes the cancel-versus-kitchen race test fail.
 
 Built from the claude-starter template (see `docs/TEMPLATE.md`).

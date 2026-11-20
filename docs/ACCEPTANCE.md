@@ -4,7 +4,8 @@ Derived from "Pizza-Driven Development" (the take-home brief). Every test ID bel
 automated test that covers it, so the README can list what is and isn't covered.
 
 Legend: **[A]** automated (vitest) · **[M]** manual check in the running app.
-All money is integer cents. "Half-up" means 0.5 cent rounds up. `S/M/L` = Small/Medium/Large.
+All money is integer cents. "Half to even" means an exact 0.5 cent rounds to the even cent
+(32.5 → 32, 45.5 → 46). `S/M/L` = Small/Medium/Large.
 
 ## Reference values
 
@@ -15,13 +16,14 @@ All money is integer cents. "Half-up" means 0.5 cent rounds up. `S/M/L` = Small/
 | Large  | 1200 | 96                 | 132                   |
 
 Order of operations: subtotal → promo discount → tax 6.5% on discounted subtotal → tip → total.
-Each percentage is rounded once, half-up, at order level.
+Each percentage is rounded once, half to even, at order level.
 
 ## Assumptions these criteria depend on (go to README "Assumptions")
 
 1. Topping % is of that line's size price, charged per pizza, times quantity.
 2. Tax is on the discounted subtotal; the tip is not taxed.
-3. Rounding: discount, tax and % tip are each rounded half-up to the cent, once, on the order.
+3. Rounding: discount, tax and % tip are each rounded half to even (banker's rounding) to the cent,
+   once, on the order.
 4. Tip % is of the post-discount, post-tax total.
 5. SAVE5 needs subtotal (before tax and discount) strictly greater than $20.00.
 6. SAVE5 on an order ≤ $20: code is valid but not applied; the customer sees why; submit allowed.
@@ -71,7 +73,7 @@ Each percentage is rounded once, half-up, at order level.
 
 | ID  | Order                                    | Subtotal    | Discount | Tax        | Tip | Total    |     |
 | --- | ---------------------------------------- | ----------- | -------- | ---------- | --- | -------- | --- |
-| P-1 | 1 S plain                                | 500         | 0        | 33 (32.5↑) | 0   | **533**  | [A] |
+| P-1 | 1 S plain                                | 500         | 0        | 32 (32.5↓) | 0   | **532**  | [A] |
 | P-2 | 1 L plain                                | 1200        | 0        | 78         | 0   | **1278** | [A] |
 | P-3 | 1 M plain                                | 700         | 0        | 46 (45.5↑) | 0   | **746**  | [A] |
 | P-4 | Topping prices for every size × category | table above |          |            |     |          | [A] |
@@ -127,7 +129,7 @@ Each percentage is rounded once, half-up, at order level.
 | PR-5  | 1 L plain                    | SAVE5                                                    | 0, "needs over $20"        | 78  | 0            | **1278** | [A] |
 | PR-6  | 5 L plain (6000)             | ILOVEPIZZA + SAVE5                                       | 600 (ILOVEPIZZA wins)      | 351 | 0            | **5751** | [A] |
 | PR-7  | 2 L plain (2400)             | ILOVEPIZZA + SAVE5                                       | 500 (SAVE5 wins)           | 124 | 0            | **2024** | [A] |
-| PR-8  | 10 S plain (5000)            | ILOVEPIZZA + SAVE5                                       | 500 (tie → ILOVEPIZZA)     | 293 | 0            | **4793** | [A] |
+| PR-8  | 10 S plain (5000)            | ILOVEPIZZA + SAVE5                                       | 500 (tie → ILOVEPIZZA)     | 292 | 0            | **4792** | [A] |
 | PR-9  | 1 L plain                    | ILOVEPIZZA + SAVE5                                       | 120 (SAVE5 ineligible)     | 70  | 0            | **1150** | [A] |
 | PR-10 | 1 L plain                    | `PIZZA4EVER`                                             | error "Unknown promo code" |     |              | blocked  | [A] |
 | PR-11 | 1 L plain                    | `ilovepizza`                                             | 120                        | 70  | 0            | **1150** | [A] |
@@ -137,6 +139,7 @@ Each percentage is rounded once, half-up, at order level.
 | T-3   | PR-2 order                   | ILOVEPIZZA, tip 20%                                      | 167                        | 97  | 319          | **1915** | [A] |
 | T-4   | any                          | tip empty or 0                                           |                            |     | 0            |          | [A] |
 | T-5   | any                          | tip `-1`, `abc`, `3.505`, `1e3`, percent `101`           | clear message, blocked     |     |              |          | [A] |
+| T-6   | 1 L plain                    | ILOVEPIZZA, tip 15%                                      | 120                        | 70  | 172 (172.5↓) | **1322** | [A] |
 | PR-13 | Conflict case in UI          | Message says which code applied and why the other wasn't |                            |     |              |          | [M] |
 
 ## R5. Order service and lifecycle
