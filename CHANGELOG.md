@@ -10,3 +10,9 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Project created from the claude-starter template.
 - Plan (`PLAN.md`) and acceptance criteria with test IDs (`docs/ACCEPTANCE.md`).
 - npm workspace with the `pricing` package and a walking-skeleton test.
+- Pricing engine: menu and promo registry as data, integer-cent money with half-up rounding,
+  conflicting promo codes resolved to the larger discount, dollar and percent tips. Example tests
+  for every pricing row in `docs/ACCEPTANCE.md` and property tests for the pricing invariants.
+- Order description (`describeOrder`) and input validation shared by the web app and service:
+  zod schema that rejects price fields, menu id checks, duplicate toppings, unknown promo codes,
+  and exact tip parsing from text.

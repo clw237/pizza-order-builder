@@ -30,7 +30,7 @@ Each percentage is rounded once, half-up, at order level.
    the larger discount is applied and the customer is told the other was not combined. Ties go
    to the code listed first in the promo registry (ILOVEPIZZA). Ineligible codes never win.
 9. Each topping at most once per pizza. Quantity is an integer 1–99. Order needs ≥ 1 line item.
-10. Tip dollars: ≥ 0, at most 2 decimals. Tip percent: 0–100, at most 2 decimals. Parsed from
+10. Tip dollars: 0 to $9,999.99, at most 2 decimals. Tip percent: 0–100, at most 2 decimals. Parsed from
     strings without floats. Empty tip means $0.
 11. Promo codes are trimmed and case-insensitive; a code entered twice counts once.
 12. Statuses: Not Started → Started → Ready for Pickup → Delivered, one step at a time.
