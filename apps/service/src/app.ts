@@ -1,0 +1,344 @@
+import { randomUUID } from "node:crypto";
+import {
+  describeOrder,
+  formatCents,
+  priceOrder,
+  validateOrder,
+  type FieldError,
+  type OrderInput,
+  type Quote,
+} from "@pizza/pricing";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import {
+  STATUS_LABELS,
+  advance,
+  canEdit,
+  cancel,
+  editRefusal,
+  type Refusal,
+  type Transition,
+} from "./lifecycle";
+import { OrderStore, type StoredOrder } from "./store";
+
+export interface AppOptions {
+  store?: OrderStore;
+  logger?: boolean;
+  now?: () => Date;
+}
+
+interface Problem {
+  statusCode: number;
+  body: { error: string; message: string } & Record<string, unknown>;
+}
+
+type IdParams = { Params: { id: string } };
+
+/**
+ * Builds the order service. Handlers are async but never await, so reading an order, checking
+ * its state and saving the result happen in one turn of the event loop. That is what makes a
+ * customer's cancel and the kitchen's start mutually exclusive.
+ */
+export function buildApp(options: AppOptions = {}) {
+  const store = options.store ?? new OrderStore();
+  const now = options.now ?? (() => new Date());
+  const app = Fastify({
+    logger: options.logger ?? false,
+    bodyLimit: 16 * 1024,
+  });
+
+  app.setErrorHandler(
+    (error: { statusCode?: number; message: string }, request, reply) => {
+      const statusCode = error.statusCode ?? 500;
+      if (statusCode >= 500) {
+        request.log.error(error);
+        return reply
+          .code(500)
+          .send({ error: "INTERNAL_ERROR", message: "Something went wrong" });
+      }
+      return reply
+        .code(statusCode)
+        .send({ error: "BAD_REQUEST", message: error.message });
+    },
+  );
+
+  app.setNotFoundHandler((request, reply) =>
+    reply.code(404).send({
+      error: "NOT_FOUND",
+      message: `No route for ${request.method} ${request.url}`,
+    }),
+  );
+
+  app.get("/health", async () => ({ ok: true }));
+
+  app.get("/orders", async () => store.list().map(view));
+
+  app.get<IdParams>("/orders/:id", async (request, reply) => {
+    const order = store.get(request.params.id);
+    if (!order) return send(reply, notFound(request.params.id));
+    return view(order);
+  });
+
+  app.post("/orders", async (request, reply) => {
+    const key = idempotencyKey(request);
+    if (!key.ok) return send(reply, key.problem);
+    const scope = `POST /orders ${key.value}`;
+    const fingerprint = JSON.stringify(request.body);
+    const replay = replayFor(scope, fingerprint);
+    if (replay) return send(reply, replay);
+
+    const submission = readSubmission(request.body);
+    if (!submission.ok) return send(reply, submission.problem);
+
+    const timestamp = now().toISOString();
+    const order: StoredOrder = {
+      id: randomUUID(),
+      status: "NOT_STARTED",
+      version: 1,
+      ...submission.value,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    store.save(order);
+    return remember(reply, scope, fingerprint, 201, view(order));
+  });
+
+  app.put<IdParams>("/orders/:id", async (request, reply) => {
+    const key = idempotencyKey(request);
+    if (!key.ok) return send(reply, key.problem);
+    const scope = `PUT /orders/${request.params.id} ${key.value}`;
+    const fingerprint = JSON.stringify([
+      request.headers["if-match"],
+      request.body,
+    ]);
+    const replay = replayFor(scope, fingerprint);
+    if (replay) return send(reply, replay);
+
+    const current = store.get(request.params.id);
+    if (!current) return send(reply, notFound(request.params.id));
+    if (!canEdit(current.status))
+      return send(reply, refused(editRefusal(current.status), current));
+
+    const version = expectedVersion(request);
+    if (!version.ok) return send(reply, version.problem);
+    if (version.value !== current.version) {
+      return send(reply, {
+        statusCode: 409,
+        body: {
+          error: "VERSION_CONFLICT",
+          message: `The order changed since you loaded it (now version ${current.version}). Reload and try again.`,
+          order: view(current),
+        },
+      });
+    }
+
+    const submission = readSubmission(request.body);
+    if (!submission.ok) return send(reply, submission.problem);
+
+    const updated: StoredOrder = {
+      ...current,
+      ...submission.value,
+      version: current.version + 1,
+      updatedAt: now().toISOString(),
+    };
+    store.save(updated);
+    return remember(reply, scope, fingerprint, 200, view(updated));
+  });
+
+  app.post<IdParams>("/orders/:id/cancel", async (request, reply) =>
+    transition(request, reply, cancel),
+  );
+
+  /** Restaurant side: moves an order one step along the kitchen's path. */
+  app.post<IdParams>("/orders/:id/advance", async (request, reply) =>
+    transition(request, reply, advance),
+  );
+
+  function transition(
+    request: FastifyRequest<IdParams>,
+    reply: FastifyReply,
+    step: (status: StoredOrder["status"]) => Transition,
+  ) {
+    const current = store.get(request.params.id);
+    if (!current) return send(reply, notFound(request.params.id));
+    const result = step(current.status);
+    if (!result.ok) return send(reply, refused(result, current));
+    if (result.status === current.status) return view(current);
+    const updated = {
+      ...current,
+      status: result.status,
+      updatedAt: now().toISOString(),
+    };
+    store.save(updated);
+    return view(updated);
+  }
+
+  function replayFor(scope: string, fingerprint: string): Problem | undefined {
+    const stored = store.getResponse(scope);
+    if (!stored) return undefined;
+    if (stored.fingerprint !== fingerprint) {
+      return {
+        statusCode: 422,
+        body: {
+          error: "IDEMPOTENCY_KEY_REUSED",
+          message:
+            "This Idempotency-Key was already used for a different request",
+        },
+      };
+    }
+    return {
+      statusCode: stored.statusCode,
+      body: stored.body as Problem["body"],
+    };
+  }
+
+  function remember(
+    reply: FastifyReply,
+    scope: string,
+    fingerprint: string,
+    statusCode: number,
+    body: unknown,
+  ) {
+    store.saveResponse(scope, { fingerprint, statusCode, body });
+    return reply.code(statusCode).send(body);
+  }
+
+  return app;
+}
+
+type Result<T> = { ok: true; value: T } | { ok: false; problem: Problem };
+
+type Priced = Pick<StoredOrder, "input" | "quote" | "description">;
+
+/** Body of POST and PUT: `{ order, expectedTotalCents }`. The service always reprices. */
+function readSubmission(body: unknown): Result<Priced> {
+  if (
+    !isRecord(body) ||
+    Object.keys(body).some((k) => k !== "order" && k !== "expectedTotalCents")
+  ) {
+    return badRequest(
+      "INVALID_REQUEST",
+      "Body must be { order, expectedTotalCents }",
+    );
+  }
+  const expected = body.expectedTotalCents;
+  if (
+    typeof expected !== "number" ||
+    !Number.isInteger(expected) ||
+    expected < 0
+  ) {
+    return badRequest(
+      "INVALID_REQUEST",
+      "expectedTotalCents must be the total you showed, in cents",
+    );
+  }
+  const result = validateOrder(body.order);
+  if (!result.ok) return invalidOrder(result.errors);
+
+  const quote: Quote = priceOrder(result.order);
+  if (quote.total !== expected) {
+    return {
+      ok: false,
+      problem: {
+        statusCode: 409,
+        body: {
+          error: "PRICE_MISMATCH",
+          message: `The total is ${formatCents(quote.total)}, not ${formatCents(expected)}. Please review the order.`,
+          quote,
+        },
+      },
+    };
+  }
+  const input: OrderInput = result.input;
+  return {
+    ok: true,
+    value: { input, quote, description: describeOrder(result.order) },
+  };
+}
+
+function idempotencyKey(request: FastifyRequest): Result<string> {
+  const key = request.headers["idempotency-key"];
+  if (typeof key !== "string" || key.length === 0 || key.length > 200) {
+    return badRequest(
+      "MISSING_IDEMPOTENCY_KEY",
+      "Send an Idempotency-Key header (1-200 characters), the same one on every retry",
+    );
+  }
+  return { ok: true, value: key };
+}
+
+function expectedVersion(request: FastifyRequest): Result<number> {
+  const header = request.headers["if-match"];
+  if (header === undefined) {
+    return {
+      ok: false,
+      problem: {
+        statusCode: 428,
+        body: {
+          error: "PRECONDITION_REQUIRED",
+          message: "Send If-Match with the order version you are editing",
+        },
+      },
+    };
+  }
+  const match = /^"?(\d{1,9})"?$/.exec(String(header));
+  if (!match)
+    return badRequest(
+      "INVALID_REQUEST",
+      "If-Match must be the order version, e.g. 3",
+    );
+  return { ok: true, value: Number(match[1]) };
+}
+
+function view(order: StoredOrder) {
+  return {
+    id: order.id,
+    status: order.status,
+    statusLabel: STATUS_LABELS[order.status],
+    version: order.version,
+    description: order.description,
+    order: order.input,
+    quote: order.quote,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
+
+function refused({ code, message }: Refusal, order: StoredOrder): Problem {
+  return {
+    statusCode: 409,
+    body: { error: code, message, order: view(order) },
+  };
+}
+
+function notFound(id: string): Problem {
+  return {
+    statusCode: 404,
+    body: { error: "ORDER_NOT_FOUND", message: `No order with id ${id}` },
+  };
+}
+
+function invalidOrder(errors: FieldError[]): Result<never> {
+  return {
+    ok: false,
+    problem: {
+      statusCode: 400,
+      body: {
+        error: "INVALID_ORDER",
+        message: errors.map((e) => e.message).join("; "),
+        errors,
+      },
+    },
+  };
+}
+
+function badRequest(error: string, message: string): Result<never> {
+  return { ok: false, problem: { statusCode: 400, body: { error, message } } };
+}
+
+function send(reply: FastifyReply, problem: Problem) {
+  return reply.code(problem.statusCode).send(problem.body);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

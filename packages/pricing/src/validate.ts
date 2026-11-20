@@ -35,7 +35,8 @@ export interface FieldError {
 }
 
 export type ValidationResult =
-  { ok: true; order: Order } | { ok: false; errors: FieldError[] };
+  | { ok: true; order: Order; input: OrderInput }
+  | { ok: false; errors: FieldError[] };
 
 export type TipResult = { ok: true; tip: Tip } | { ok: false; message: string };
 
@@ -108,7 +109,11 @@ export function validateOrder(
   if (!tipResult.ok) errors.push({ path: "tip", message: tipResult.message });
 
   if (errors.length > 0 || !tipResult.ok) return { ok: false, errors };
-  return { ok: true, order: { lines, promoCodes, tip: tipResult.tip } };
+  return {
+    ok: true,
+    order: { lines, promoCodes, tip: tipResult.tip },
+    input: parsed.data,
+  };
 }
 
 function lineErrors(item: LineItem, path: string, menu: Menu): FieldError[] {

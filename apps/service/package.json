@@ -1,0 +1,12 @@
+{
+  "name": "@pizza/service",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@pizza/pricing": "*",
+    "fastify": "^5.12.8"
+  }
+}
