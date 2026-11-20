@@ -4,7 +4,8 @@ Derived from "Pizza-Driven Development" (the take-home brief). Every test ID bel
 automated test that covers it, so the README can list what is and isn't covered.
 
 Legend: **[A]** automated (vitest) · **[M]** manual check in the running app.
-All money is integer cents. "Half to even" means an exact 0.5 cent rounds to the even cent (32.5 → 32, 45.5 → 46). `S/M/L` = Small/Medium/Large.
+All money is integer cents. "Half to even" means an exact 0.5 cent rounds to the even cent
+(32.5 → 32, 45.5 → 46). `S/M/L` = Small/Medium/Large.
 
 ## Reference values
 
@@ -138,6 +139,7 @@ Each percentage is rounded once, half to even, at order level.
 | T-3   | PR-2 order                   | ILOVEPIZZA, tip 20%                                      | 167                        | 97  | 319          | **1915** | [A] |
 | T-4   | any                          | tip empty or 0                                           |                            |     | 0            |          | [A] |
 | T-5   | any                          | tip `-1`, `abc`, `3.505`, `1e3`, percent `101`           | clear message, blocked     |     |              |          | [A] |
+| T-6   | 1 L plain                    | ILOVEPIZZA, tip 15%                                      | 120                        | 70  | 172 (172.5↓) | **1322** | [A] |
 | PR-13 | Conflict case in UI          | Message says which code applied and why the other wasn't |                            |     |              |          | [M] |
 
 ## R5. Order service and lifecycle

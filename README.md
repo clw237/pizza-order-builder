@@ -138,9 +138,10 @@ Where the brief left something open, this is what I decided. Each one is impleme
 ### Money and the order total
 
 Money is an integer number of cents everywhere; percentages are basis points (8% = 800).
-`applyRate(amount, rate)` multiplies in integers, splits `amount × rate` into whole cents and a
-remainder out of 10000, and rounds half to even (a remainder of exactly 5000 goes to the even cent), so no floating-point value ever represents money. Tips arrive as text and are
-parsed straight into cents or basis points.
+`applyRate(amount, rate)` splits `amount × rate` into whole cents and a remainder out of 10000,
+and sends a remainder of exactly 5000 to the even cent: half-to-even rounding in integer
+arithmetic, so no floating-point value ever represents money. Tips arrive as text and are parsed
+straight into cents or basis points.
 
 All pricing lives in one pure function, `priceOrder(order, menu, promos)` in `packages/pricing`.
 **It runs in both places, and the service is the authority.** The builder calls it on every change
@@ -225,7 +226,7 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 
 | Invariant                                                                                                                                                                              | Why                                                                                         | Tests                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Every worked price matches the cent, including half-cent cases                                                                                                                         | Pricing correctness is the top priority                                                     | P-1…P-8, PR-1…PR-12, T-1…T-3                            |
+| Every worked price matches the cent, including half-cent cases                                                                                                                         | Pricing correctness is the top priority                                                     | P-1…P-8, PR-1…PR-12, T-1…T-3, T-6                       |
 | The breakdown adds up; every amount is a non-negative integer; discount ≤ subtotal; line order doesn't matter; tip never changes tax; the two conflicting codes are never both applied | Must hold for every order, not just examples, so they are property tests over random orders | INV-1…INV-6                                             |
 | The service charges exactly what the shared function computes, and rejects a different expected total                                                                                  | "The total the customer sees must match the total charged"                                  | RT-1, RT-2                                              |
 | A retried submit or update is applied once; a reused key with a different body is rejected                                                                                             | Customers on mobile will retry                                                              | S-2, S-3, S-8, S-17 (including a 5xx on the last retry) |

@@ -224,6 +224,14 @@ describe("R4 tips", () => {
     expect(totals(o)).toMatchObject({ tip: 192, total: 1470 });
   });
 
+  it("T-6 a percent tip of exactly half a cent rounds half to even, down to 172", () => {
+    const o = order([line("large")], ["ILOVEPIZZA"], {
+      mode: "percent",
+      rate: 1500,
+    });
+    expect(totals(o)).toMatchObject({ tip: 172, total: 1322 });
+  });
+
   it("T-3 percent tip is of the discounted, taxed total", () => {
     const o = order(
       [line("medium", 2, ["pepperoni", "bacon"])],
