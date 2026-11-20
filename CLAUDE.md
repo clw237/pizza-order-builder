@@ -6,7 +6,7 @@ Stack: TypeScript, npm workspaces, Fastify (service), Vite + React (web), zod, v
 - **Design:** `PLAN.md`. **Decisions:** `docs/decisions/`. **Process:** `CONTRIBUTING.md`.
 - **Commands.** Keep these current. Claude runs them; it doesn't guess them.
   - Check everything (format, lint, types, tests): `bash scripts/check.sh`
-  - Run the app: see README (filled in once the service and web app exist)
+  - Run the app: `npm run service` and `npm run web` (two terminals), then open http://localhost:5173
   - Run one test: `npx vitest run <file> -t "<test name>"`
 - **Skills.** New project or empty repo: `bootstrap`. Any code change: `add-feature`.
   Logging bugs and ideas as issues: `log-issue`. Timed interview or code challenge: `code-challenge`.

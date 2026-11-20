@@ -7,6 +7,8 @@
     "apps/*"
   ],
   "scripts": {
+    "service": "npm start -w @pizza/service",
+    "web": "npm run dev -w @pizza/web",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint .",
