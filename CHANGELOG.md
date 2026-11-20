@@ -24,3 +24,6 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   description, submit and update with automatic retries under one `Idempotency-Key`, status
   polling, change and cancel while Not Started. `?flaky` in the URL drops the first response to
   demonstrate a safe retry.
+- Restaurant side: `npm run kitchen -- list | advance <id>`, and an optional timer
+  (`KITCHEN_AUTO_ADVANCE_SECONDS`) that moves orders along. Status changes now go through one
+  `OrderStore.transition` method shared by the routes and the timer.

@@ -158,18 +158,14 @@ export function buildApp(options: AppOptions = {}) {
     reply: FastifyReply,
     step: (status: StoredOrder["status"]) => Transition,
   ) {
-    const current = store.get(request.params.id);
-    if (!current) return send(reply, notFound(request.params.id));
-    const result = step(current.status);
-    if (!result.ok) return send(reply, refused(result, current));
-    if (result.status === current.status) return view(current);
-    const updated = {
-      ...current,
-      status: result.status,
-      updatedAt: now().toISOString(),
-    };
-    store.save(updated);
-    return view(updated);
+    const outcome = store.transition(request.params.id, step, now());
+    if (outcome.kind === "not-found") {
+      return send(reply, notFound(request.params.id));
+    }
+    if (outcome.kind === "refused") {
+      return send(reply, refused(outcome.refusal, outcome.order));
+    }
+    return view(outcome.order);
   }
 
   function replayFor(scope: string, fingerprint: string): Problem | undefined {
