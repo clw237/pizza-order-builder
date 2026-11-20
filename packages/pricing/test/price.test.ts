@@ -16,13 +16,13 @@ function totals(o: Order) {
 }
 
 describe("R2 base pricing", () => {
-  it("P-1 small plain: tax 32.5 cents rounds half-up to 33", () => {
+  it("P-1 small plain: tax 32.5 cents rounds half to even, down to 32", () => {
     expect(totals(plain("small"))).toEqual({
       subtotal: 500,
       discount: 0,
-      tax: 33,
+      tax: 32,
       tip: 0,
-      total: 533,
+      total: 532,
     });
   });
 
@@ -30,7 +30,7 @@ describe("R2 base pricing", () => {
     expect(priceOrder(plain("large")).total).toBe(1278);
   });
 
-  it("P-3 medium plain: tax 45.5 cents rounds half-up to 46", () => {
+  it("P-3 medium plain: tax 45.5 cents rounds half to even, up to 46", () => {
     expect(totals(plain("medium"))).toMatchObject({ tax: 46, total: 746 });
   });
 
@@ -90,7 +90,7 @@ describe("R4 promo codes", () => {
     });
   });
 
-  it("PR-2 ILOVEPIZZA discount 166.6 cents rounds half-up to 167", () => {
+  it("PR-2 ILOVEPIZZA discount 166.6 cents rounds to the nearest cent, 167", () => {
     expect(totals(order(twoMediumPepBacon, ["ILOVEPIZZA"]))).toMatchObject({
       subtotal: 1666,
       discount: 167,
@@ -167,8 +167,8 @@ describe("R4 promo codes", () => {
     const q = priceOrder(order([line("small", 10)], ["SAVE5", "ILOVEPIZZA"]));
     expect(q).toMatchObject({
       discount: 500,
-      tax: 293,
-      total: 4793,
+      tax: 292,
+      total: 4792,
       appliedPromos: ["ILOVEPIZZA"],
     });
   });
@@ -219,7 +219,7 @@ describe("R4 tips", () => {
     expect(totals(o)).toMatchObject({ tax: 78, tip: 350, total: 1628 });
   });
 
-  it("T-2 percent tip is of the post-tax total and rounds half-up", () => {
+  it("T-2 percent tip is of the post-tax total and rounds to the nearest cent", () => {
     const o = order([line("large")], [], { mode: "percent", rate: 1500 });
     expect(totals(o)).toMatchObject({ tip: 192, total: 1470 });
   });

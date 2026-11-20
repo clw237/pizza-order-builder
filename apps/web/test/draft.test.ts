@@ -42,7 +42,8 @@ describe("order builder draft", () => {
     totals.push(evaluate(draft).quote?.total);
     draft = { ...draft, tipMode: "percent", tipValue: "15" };
     totals.push(evaluate(draft).quote?.total);
-    expect(totals).toEqual([746, 1278, 1150, 1323]);
+    // The last total includes a 172.5¢ tip, a tie that rounds half to even down to 172¢.
+    expect(totals).toEqual([746, 1278, 1150, 1322]);
   });
 
   it("PR-11 promo codes can be separated by commas or spaces", () => {

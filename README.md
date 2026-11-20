@@ -105,7 +105,9 @@ Where the brief left something open, this is what I decided. Each one is impleme
 2. **Order of operations:** subtotal → promo discount → tax on the discounted subtotal → tip →
    total. "Tax on the total order" is read as the discounted food total, before tip.
 3. **Rounding:** money is integer cents. Discount, tax and a percentage tip are each rounded once,
-   half-up, at the order level (never per line). Example: tax on $5.00 is 32.5¢ → 33¢.
+   half to even (banker's rounding), at the order level (never per line). An exact half cent goes
+   to the even cent, so ties don't always round up. Example: tax on $5.00 is 32.5¢ → 32¢, and tax
+   on $7.00 is 45.5¢ → 46¢.
 4. **Tip percentage** is of the bill after discount and tax. The tip is not taxed.
 5. **SAVE5** needs a subtotal strictly over $20.00, measured before tax and before any discount.
    At exactly $20.00 it does not apply.
@@ -136,8 +138,8 @@ Where the brief left something open, this is what I decided. Each one is impleme
 ### Money and the order total
 
 Money is an integer number of cents everywhere; percentages are basis points (8% = 800).
-`applyRate(amount, rate)` computes `floor((amount × rate + 5000) / 10000)`, a half-up rounding in
-integer arithmetic, so no floating-point value ever represents money. Tips arrive as text and are
+`applyRate(amount, rate)` multiplies in integers, splits `amount × rate` into whole cents and a
+remainder out of 10000, and rounds half to even (a remainder of exactly 5000 goes to the even cent), so no floating-point value ever represents money. Tips arrive as text and are
 parsed straight into cents or basis points.
 
 All pricing lives in one pure function, `priceOrder(order, menu, promos)` in `packages/pricing`.
@@ -267,7 +269,7 @@ myself.
   restaurant's menu, so it was moved out of scope.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test, and the two most important tests were checked by
-  breaking the code on purpose: switching rounding to truncation fails 9 pricing tests, and adding one
+  breaking the code on purpose: switching rounding to truncation fails 15 tests, and adding one
   `await` inside a status change makes the cancel-versus-kitchen race test fail.
 
 Built from the claude-starter template (see `docs/TEMPLATE.md`).
