@@ -10,7 +10,7 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Project created from the claude-starter template.
 - Plan (`PLAN.md`) and acceptance criteria with test IDs (`docs/ACCEPTANCE.md`).
 - npm workspace with the `pricing` package and a walking-skeleton test.
-- Pricing engine: menu and promo registry as data, integer-cent money with half-up rounding,
+- Pricing engine: menu and promo registry as data, integer-cent money with half-to-even rounding,
   conflicting promo codes resolved to the larger discount, dollar and percent tips. Example tests
   for every pricing row in `docs/ACCEPTANCE.md` and property tests for the pricing invariants.
 - Order description (`describeOrder`) and input validation shared by the web app and service:
@@ -29,6 +29,11 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   `OrderStore.transition` method shared by the routes and the timer.
 - README: run commands, API reference, assumptions, design write-up, tested invariants and AI
   usage.
+
+### Changed
+
+- Discount, tax and percentage tips round half to even (banker's rounding) instead of half-up,
+  so a small plain pizza now costs $5.32 (tax 32.5¢ → 32¢).
 
 ### Fixed
 
