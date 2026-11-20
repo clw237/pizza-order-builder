@@ -233,6 +233,11 @@ idempotency keys with a unique constraint.
   service.
 - **A replayed response is the original one,** so a retry after the order moved on shows the old
   status until the next poll.
+- **Status updates are polled** every 3 seconds until the order is Delivered or Cancelled. Next:
+  push them with Server-Sent Events (`GET /orders/:id/events`) as soon as a status changes, and
+  keep polling as the fallback when the stream drops.
+- **Each topping at most once per pizza** (assumption 9). Next: double toppings, so a topping can
+  be added twice, shown with a ×2 badge and charged twice, which changes that assumption.
 - **Not built (per the brief):** customer accounts and login, payments, menu admin, multiple locations. A TMNT-themed skin
   is parked on the `feature/theme` branch.
 
@@ -288,6 +293,12 @@ myself.
   unrelated template documents and that change was reverted; a test for the builder assumed an
   empty starting order and was corrected; a proposed TMNT topping list would have changed the
   restaurant's menu, so it was moved out of scope.
+- **A cold-grader rehearsal found a real bug.** Before submitting, a fresh Claude subagent with
+  only the brief and the repo graded the work against the brief, with file and line evidence
+  (`docs/ACCEPTANCE.md`, "Mock AI evaluation"). It found that the builder dropped its
+  `Idempotency-Key` when the last automatic retry ended in a server error, so pressing Send again
+  sent a new key and could create a second order. The fix (PR #11) keeps the key until the
+  service gives a definite answer, with a test; the same pass also caught a hard-coded tax label.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test, and the two most important tests were checked by
   breaking the code on purpose: switching rounding to truncation fails 15 tests, and adding one
