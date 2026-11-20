@@ -36,6 +36,8 @@ Each percentage is rounded once, half-up, at order level.
 12. Statuses: Not Started → Started → Ready for Pickup → Delivered, one step at a time.
     Cancelled is terminal and reachable only from Not Started.
 13. An update replaces the whole order (items, codes, tip) and is repriced on the server.
+14. Retries: clients send an `Idempotency-Key` on submit and update and reuse it on every retry.
+15. One restaurant, one service process, in-memory storage. Restarting the service forgets orders.
 
 ---
 
