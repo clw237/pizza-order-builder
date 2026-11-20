@@ -1,0 +1,11 @@
+# Keeps the SHA-pinned GitHub Actions current. Add your language's ecosystem
+# (pip, npm, gomod, cargo, gradle, nuget) here once the project is bootstrapped.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

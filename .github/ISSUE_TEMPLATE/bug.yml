@@ -1,0 +1,39 @@
+name: Bug
+description: Something doesn't work as it should.
+labels: ["bug", "needs-decision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New bugs start as `needs-decision`. Change the status label to `ready` once the expected
+        behaviour is clear, or `blocked` if it waits on another issue (CONTRIBUTING.md).
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on
+      description: Issues that must be closed first, e.g. "#6, #7". Write "none" if there are none.
+      value: none
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, step by step, and what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Error messages, logs or screenshots
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: How we'll know it's fixed. A test that reproduces the bug is usually part of this.

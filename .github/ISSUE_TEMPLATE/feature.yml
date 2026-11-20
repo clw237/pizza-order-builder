@@ -1,0 +1,46 @@
+name: Feature
+description: A new feature or a change to how something works.
+labels: ["enhancement", "needs-decision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New features start as `needs-decision`. Move the answers to **Decided** and change the label
+        to `ready` (or `blocked`) once the open questions are settled (CONTRIBUTING.md).
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on
+      description: Issues that must be closed first, e.g. "#6, #7". Write "none" if there are none.
+      value: none
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What you want and why. Reference PLAN.md sections where they apply.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Suggested approach
+      description: Optional. The code areas, data or screens you expect it to touch.
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Anything that must be decided before building, each with a proposed answer.
+  - type: textarea
+    id: decided
+    attributes:
+      label: Decided
+      description: Answers to the open questions, moved here as they're settled.
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: What works when it's finished, and what the tests cover.
+    validations:
+      required: true
