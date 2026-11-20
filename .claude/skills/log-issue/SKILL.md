@@ -11,15 +11,20 @@ list of work. Read `PLAN.md` and the Definition of Ready in `CONTRIBUTING.md` fi
 
 ## 1. For each bug or idea (often described roughly)
 1. **Check for duplicates.** If it belongs on an existing issue, propose updating that one instead.
-2. **Look at the relevant code** so the issue names real files and functions. Point out anything that
+2. **Check it against the requirements** (`PLAN.md` §2 and the assumptions in `docs/ACCEPTANCE.md`)
+   before filing, and tell the owner the result: which requirement it serves (R1–R6 or a Should),
+   or that it is outside them. If it falls under §2.3 Won't or contradicts a numbered assumption,
+   it isn't allowed as written: say which item it hits and don't file it unless the owner decides to
+   change the design. Then the issue names the `PLAN.md` section it changes.
+3. **Look at the relevant code** so the issue names real files and functions. Point out anything that
    conflicts with current behaviour or with `PLAN.md`.
-3. **File the issue** with these sections (the forms in `.github/ISSUE_TEMPLATE/` match):
+4. **File the issue** with these sections (the forms in `.github/ISSUE_TEMPLATE/` match):
    Summary · Depends on: #N or "none" · What exists today · ⚠️ Open questions (checkboxes, each
    with a *Proposed:* answer), or ✅ Decided when there's nothing to settle · Rough design (only
    when useful) · Done when.
-4. **Labels:** one type (`bug` or `enhancement`) and exactly one status: `needs-decision`, `blocked`,
+5. **Labels:** one type (`bug` or `enhancement`) and exactly one status: `needs-decision`, `blocked`,
    `ready` or `backlog` (`CONTRIBUTING.md`). If the labels don't exist yet, create them first.
-5. **Report back briefly:** the link, the labels and the open questions in plain language.
+6. **Report back briefly:** the link, the labels, the requirement check and the open questions in plain language.
 
 ## 2. Ask now or defer the open questions
 End the report with a choice, asked with the AskUserQuestion tool: **Answer now** or **Defer**.
