@@ -12,24 +12,30 @@ Prerequisite: Node.js 22.12 or later.
 npm install
 ```
 
-| What                                         | Command                                                                   |
-| -------------------------------------------- | ------------------------------------------------------------------------- |
-| Order service (port 3000)                    | `npm run service`                                                         |
-| Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                            |
-| All checks: format, lint, types, 117 tests   | `bash scripts/check.sh`                                                   |
-| Tests only                                   | `npm test`                                                                |
-| Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`) |
-| Restaurant side: list orders / advance one   | `npm run kitchen -- list` and `npm run kitchen -- advance <id>`           |
+| What                                         | Command                                                                    |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
+| Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
+| All checks: format, lint, types, 137 tests   | `bash scripts/check.sh`                                                    |
+| Tests only                                   | `npm test`                                                                 |
+| Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`)  |
+| Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
 
 Run the service and the builder in two terminals. They are separate processes; the builder's dev
 server forwards `/api/*` to the service over HTTP.
+
+- **Kitchen token:** the restaurant routes (list all orders, advance one) need a `Kitchen-Token`
+  header that matches the service's `KITCHEN_TOKEN`. Pick any value and give the same one to the
+  service and the kitchen CLI (`dev-secret` above is only an example). Without it the service still
+  runs, but those routes answer 401. The builder doesn't need it.
 
 - **Kitchen timer (optional):** `KITCHEN_AUTO_ADVANCE_SECONDS=20 npm run service` moves each order
   one step after it has gone 20 seconds without a status change or an edit. Off by default.
 - **Flaky-network demo:** open http://localhost:5173/?flaky. The first response is thrown away after
   the service has handled it, the builder retries with the same `Idempotency-Key`, and you still get
   exactly one order.
-- Settings: `PORT` and `HOST` for the service, `SERVICE_URL` for the builder and the kitchen CLI.
+- Settings: `PORT` and `HOST` for the service, `SERVICE_URL` for the builder and the kitchen CLI,
+  and `KITCHEN_TOKEN` for the service and the kitchen CLI. `.env.example` lists the names.
 
 ## Layout
 
@@ -45,15 +51,15 @@ server forwards `/api/*` to the service over HTTP.
 
 All bodies are JSON. Money is integer cents. Errors are `{ "error": CODE, "message": "...", ... }`.
 
-| Method and path            | Purpose                 | Notes                                                                        |
-| -------------------------- | ----------------------- | ---------------------------------------------------------------------------- |
-| `POST /orders`             | Submit an order         | Requires `Idempotency-Key`. 201 with the order                               |
-| `GET /orders/:id`          | Order and its status    | 404 if unknown                                                               |
-| `GET /orders`              | All orders              | Used by the kitchen CLI                                                      |
-| `PUT /orders/:id`          | Replace the order       | Requires `Idempotency-Key` and `If-Match: <version>`. Only while Not Started |
-| `POST /orders/:id/cancel`  | Cancel                  | Only while Not Started. Cancelling a cancelled order returns 200 again       |
-| `POST /orders/:id/advance` | Restaurant: next status | Not Started → Started → Ready for Pickup → Delivered                         |
-| `GET /health`              | Liveness                |                                                                              |
+| Method and path            | Purpose                 | Notes                                                                          |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `POST /orders`             | Submit an order         | Requires `Idempotency-Key`. 201 with the order                                 |
+| `GET /orders/:id`          | Order and its status    | 404 if unknown                                                                 |
+| `GET /orders`              | Restaurant: all orders  | Requires `Kitchen-Token`; 401 if missing or wrong. Used by the kitchen CLI     |
+| `PUT /orders/:id`          | Replace the order       | Requires `Idempotency-Key` and `If-Match: <version>`. Only while Not Started   |
+| `POST /orders/:id/cancel`  | Cancel                  | Only while Not Started. Cancelling a cancelled order returns 200 again         |
+| `POST /orders/:id/advance` | Restaurant: next status | Requires `Kitchen-Token`. Not Started → Started → Ready for Pickup → Delivered |
+| `GET /health`              | Liveness                |                                                                                |
 
 Submit (`expectedTotalCents` is the total the customer was shown):
 
@@ -201,6 +207,19 @@ These guarantees rely on one process with in-memory state. With a database, the 
 a conditional `UPDATE … WHERE id = ? AND status = 'NOT_STARTED' AND version = ?` plus a table of
 idempotency keys with a unique constraint.
 
+### Security
+
+- **Restaurant routes are protected** by a shared secret: `GET /orders` and
+  `POST /orders/:id/advance` need a `Kitchen-Token` header equal to the service's `KITCHEN_TOKEN`,
+  compared in constant time. If `KITCHEN_TOKEN` isn't set, those routes refuse every request rather
+  than open up. The kitchen timer runs inside the service and needs no token.
+- **Customer routes are open by design** (no accounts, per the brief). An order is reached by its
+  random UUID, which acts as the customer's capability to view, change or cancel it.
+- **Input is bounded:** 16 KB bodies, at most 50 line items, quantities 1–99, strict schemas.
+- **Known limit: memory grows without bound.** Orders and idempotency keys stay in memory until the
+  service restarts, and nothing limits request rates, so a flood of submissions grows the process
+  until it is restarted. A database with a TTL on keys and a rate limit would fix it.
+
 ### What I cut or faked, and what I'd build next
 
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
@@ -217,12 +236,12 @@ idempotency keys with a unique constraint.
   service.
 - **A replayed response is the original one,** so a retry after the order moved on shows the old
   status until the next poll.
-- **Not built (per the brief):** auth, payments, menu admin, multiple locations. A TMNT-themed skin
+- **Not built (per the brief):** customer accounts and login, payments, menu admin, multiple locations. A TMNT-themed skin
   is parked on the `feature/theme` branch.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 117 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and 137 tests. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**
@@ -234,6 +253,7 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | The service charges exactly what the shared function computes, and rejects a different expected total                                                                                  | "The total the customer sees must match the total charged"                                  | RT-1, RT-2                                              |
 | A retried submit or update is applied once; a reused key with a different body is rejected                                                                                             | Customers on mobile will retry                                                              | S-2, S-3, S-8, S-17 (including a 5xx on the last retry) |
 | Cancel and edit are refused once the kitchen starts, including when they race                                                                                                          | The lifecycle guarantee                                                                     | S-9, S-13, S-14                                         |
+| Only the restaurant, holding the kitchen token, can list all orders or advance one                                                                                                     | Customers mustn't see each other's orders or move their own along                           | K-3                                                     |
 | Status moves only along the allowed path                                                                                                                                               | Explicit state transitions                                                                  | S-10…S-12, K-2                                          |
 | Bad input gets a clear message, and clients can't send prices                                                                                                                          | Server-side validation                                                                      | OB-2…OB-5, T-5, PR-10, S-15, S-16                       |
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |

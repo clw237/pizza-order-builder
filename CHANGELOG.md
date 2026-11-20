@@ -41,6 +41,12 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
 
+### Security
+
+- `GET /orders` and `POST /orders/:id/advance` now require a `Kitchen-Token` header matching the
+  service's `KITCHEN_TOKEN` (401 otherwise, and always 401 when it isn't set). The kitchen CLI
+  sends it.
+
 ### Development
 
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an

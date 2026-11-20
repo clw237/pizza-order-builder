@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import {
   describeOrder,
   formatCents,
@@ -24,6 +24,8 @@ export interface AppOptions {
   store?: OrderStore;
   logger?: boolean;
   now?: () => Date;
+  /** Secret the restaurant sends in the `Kitchen-Token` header. Unset means those routes are closed. */
+  kitchenToken?: string | undefined;
 }
 
 interface Problem {
@@ -70,7 +72,12 @@ export function buildApp(options: AppOptions = {}) {
 
   app.get("/health", async () => ({ ok: true }));
 
-  app.get("/orders", async () => store.list().map(view));
+  /** Restaurant side: every order, oldest first. */
+  app.get("/orders", async (request, reply) => {
+    const denied = kitchenDenial(request, options.kitchenToken);
+    if (denied) return send(reply, denied);
+    return store.list().map(view);
+  });
 
   app.get<IdParams>("/orders/:id", async (request, reply) => {
     const order = store.get(request.params.id);
@@ -149,9 +156,11 @@ export function buildApp(options: AppOptions = {}) {
   );
 
   /** Restaurant side: moves an order one step along the kitchen's path. */
-  app.post<IdParams>("/orders/:id/advance", async (request, reply) =>
-    transition(request, reply, advance),
-  );
+  app.post<IdParams>("/orders/:id/advance", async (request, reply) => {
+    const denied = kitchenDenial(request, options.kitchenToken);
+    if (denied) return send(reply, denied);
+    return transition(request, reply, advance);
+  });
 
   function transition(
     request: FastifyRequest<IdParams>,
@@ -260,6 +269,32 @@ function idempotencyKey(request: FastifyRequest): Result<string> {
     );
   }
   return { ok: true, value: key };
+}
+
+/** Undefined when the request carries the configured kitchen token; otherwise the 401 to send. */
+function kitchenDenial(
+  request: FastifyRequest,
+  expected: string | undefined,
+): Problem | undefined {
+  const sent = request.headers["kitchen-token"];
+  if (expected && typeof sent === "string" && sameSecret(sent, expected)) {
+    return undefined;
+  }
+  return {
+    statusCode: 401,
+    body: {
+      error: "KITCHEN_TOKEN_REQUIRED",
+      message: expected
+        ? "Restaurant routes need a Kitchen-Token header matching the service's KITCHEN_TOKEN"
+        : "Restaurant routes are closed: start the service with KITCHEN_TOKEN set",
+    },
+  };
+}
+
+/** Compares digests so the comparison takes the same time whatever the input's length or content. */
+function sameSecret(a: string, b: string): boolean {
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(a), digest(b));
 }
 
 function expectedVersion(request: FastifyRequest): Result<number> {
