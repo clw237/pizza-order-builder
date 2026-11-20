@@ -8,6 +8,7 @@ Stack: TypeScript, npm workspaces, Fastify (service), Vite + React (web), zod, v
   - Check everything (format, lint, types, tests): `bash scripts/check.sh`
   - Run the app: `npm run service` and `npm run web` (two terminals), then open http://localhost:5173
   - Run one test: `npx vitest run <file> -t "<test name>"`
+  - Browser smoke test (starts the service and builder itself): `npm run e2e -- --trace off`
 - **Skills.** New project or empty repo: `bootstrap`. Any code change: `add-feature`.
   Logging bugs and ideas as issues: `log-issue`. Timed interview or code challenge: `code-challenge`.
   Switching to unrelated work or a long break: `handoff`.

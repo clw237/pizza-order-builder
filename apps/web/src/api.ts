@@ -25,6 +25,14 @@ export type ApiResult =
   | { ok: true; order: OrderView }
   | { ok: false; status: number; problem: ApiProblem };
 
+/**
+ * True once the service has given a definite answer. A 5xx (after the last retry) is not one:
+ * the order may or may not exist, so the next Send must reuse the same Idempotency-Key.
+ */
+export function isSettled(result: ApiResult): boolean {
+  return result.ok || result.status < 500;
+}
+
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface RetryOptions {

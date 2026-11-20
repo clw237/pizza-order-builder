@@ -1,6 +1,6 @@
 import { describeOrder, formatCents, validateOrder } from "@pizza/pricing";
 import { useEffect, useMemo, useState } from "react";
-import type { Api, ApiResult, OrderView } from "./api";
+import { isSettled, type Api, type ApiResult, type OrderView } from "./api";
 import { Breakdown, Builder } from "./Builder";
 import { emptyDraft, evaluate, fromOrderInput, type Draft } from "./draft";
 
@@ -79,7 +79,7 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
         : api.submit(input, quote.total, key),
     );
     if (!result) return;
-    setPending(null);
+    if (isSettled(result)) setPending(null);
     if (result.ok) {
       setPlaced(result.order);
       setEditing(false);

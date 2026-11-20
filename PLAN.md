@@ -51,7 +51,7 @@ persistent storage.
   - `apps/service`: Fastify. In-memory store, pure state machine, idempotency keys,
     optimistic versioning. Reprices every order; rejects a mismatched `expectedTotalCents`.
   - `apps/web`: Vite + React. Calls `priceOrder()` on every change.
-- **Money:** integer cents; rates in basis points; `applyRate` rounds half-up with integer math.
+- **Money:** integer cents; rates in basis points; `applyRate` rounds half to even with integer math.
   Each percentage is applied once at order level.
 - **Extensibility:** sizes, categories (with rate) and toppings are data. A promo is
   `{code, conflictsWith[], evaluate({subtotal, pizzaCount}) → {eligible, discount | reason}}` in a registry.
@@ -73,11 +73,42 @@ Each slice is runnable and tested on its own.
 4. Service: endpoints, state machine, idempotency, versioning, race tests. (must) ✅
 5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must) ✅
 6. Kitchen CLI and optional timer. (must: CLI; cut first: timer) ✅
-7. TMNT / Magic theme. (cuttable)
-8. `docker compose up`. (cuttable)
-9. README, then mock AI evaluation (`docs/ACCEPTANCE.md`), then fixes. (must)
+7. TMNT / Magic theme. (cut for now: parked on `feature/theme`)
+8. `docker compose up`. (only if time remains after 10–13)
+9. README ✅, mock AI evaluation ✅, fixes (PR #11).
+
+### 5.1 Next, from the owner's decision review
+
+One pull request each, in this order. Each needs tests, a green `bash scripts/check.sh` and green
+CI before it goes to the owner.
+
+10. **Banker's rounding.** `applyRate` rounds half to even instead of half-up. Expected changes:
+    P-1 tax 32.5¢ → 32¢ (total 532); PR-8 tax 292.5¢ → 292¢ (total 4792). Other half-cent cases
+    (P-3, PR-7) already land on even and stay. Update assumption 3 and its example in the README
+    and `docs/ACCEPTANCE.md`, and re-count how many tests fail when rounding is broken on purpose
+    (the README cites that number).
+11. **Kitchen token.** `GET /orders` and `POST /orders/:id/advance` require a `KITCHEN_TOKEN`
+    header matching the service's `KITCHEN_TOKEN` environment variable; missing or wrong → 401.
+    The kitchen CLI sends it; `.env.example` lists the name; tests cover missing, wrong and right
+    tokens. README: API table, run commands, and a short security note (restaurant routes are
+    protected; in-memory orders and idempotency keys grow without bound, a known limit).
+12. **End-to-end smoke test.** One committed Playwright test that starts the service and the
+    builder and places an order. Match the `@playwright/test` version to the preinstalled
+    Playwright before adding it; add the browser install step to CI.
+13. **README updates.** AI note: mention the cold-grader rehearsal and the retry-key bug it found.
+    Next steps: Server-Sent Events status push (polling stays as fallback) and double toppings
+    (allow a topping twice, ×2 icon, charged twice).
 
 ## 6. Open questions
 
 All ambiguities are resolved as numbered assumptions in `docs/ACCEPTANCE.md` and copied into
 the README.
+
+Owner's decision review: kept the shared TypeScript pricing package, PR process, acceptance
+criteria, order of operations, promo edge cases and conflict rule, `expectedTotalCents` check,
+in-memory storage, idempotency keys and `If-Match`, synchronous check-and-set with polling (no
+push yet), linear statuses plus Cancelled, kitchen endpoint + CLI + optional timer, Vite proxy and
+retries, input limits. Changed: rounding (§5.1 item 10), kitchen token (11), e2e test (12), README
+(13). Deferred: theme, double toppings, SSE push. Owner to do: import the `main` ruleset; run the
+rounding check personally after item 10, then the AI note's "verified" bullet is reworded in the
+owner's voice.

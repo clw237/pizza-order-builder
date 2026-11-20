@@ -10,7 +10,7 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Project created from the claude-starter template.
 - Plan (`PLAN.md`) and acceptance criteria with test IDs (`docs/ACCEPTANCE.md`).
 - npm workspace with the `pricing` package and a walking-skeleton test.
-- Pricing engine: menu and promo registry as data, integer-cent money with half-up rounding,
+- Pricing engine: menu and promo registry as data, integer-cent money with half-to-even rounding,
   conflicting promo codes resolved to the larger discount, dollar and percent tips. Example tests
   for every pricing row in `docs/ACCEPTANCE.md` and property tests for the pricing invariants.
 - Order description (`describeOrder`) and input validation shared by the web app and service:
@@ -27,3 +27,27 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Restaurant side: `npm run kitchen -- list | advance <id>`, and an optional timer
   (`KITCHEN_AUTO_ADVANCE_SECONDS`) that moves orders along. Status changes now go through one
   `OrderStore.transition` method shared by the routes and the timer.
+- README: run commands, API reference, assumptions, design write-up, tested invariants and AI
+  usage.
+
+### Changed
+
+- Discount, tax and percentage tips round half to even (banker's rounding) instead of half-up,
+  so a small plain pizza now costs $5.32 (tax 32.5¢ → 32¢).
+
+### Fixed
+
+- The builder now keeps the `Idempotency-Key` when the last retry ends in a server error, so
+  pressing Send again can't create a second order.
+- The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
+
+### Security
+
+- `GET /orders` and `POST /orders/:id/advance` now require a `Kitchen-Token` header matching the
+  service's `KITCHEN_TOKEN` (401 otherwise, and always 401 when it isn't set). The kitchen CLI
+  sends it.
+
+### Development
+
+- Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
+  order and places it. `npm run e2e`; CI installs Chromium and runs it.
