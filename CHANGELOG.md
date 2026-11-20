@@ -40,3 +40,9 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - The builder now keeps the `Idempotency-Key` when the last retry ends in a server error, so
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
+
+### Security
+
+- `GET /orders` and `POST /orders/:id/advance` now require a `Kitchen-Token` header matching the
+  service's `KITCHEN_TOKEN` (401 otherwise, and always 401 when it isn't set). The kitchen CLI
+  sends it.

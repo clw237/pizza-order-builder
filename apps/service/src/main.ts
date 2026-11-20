@@ -7,9 +7,16 @@ const host = process.env.HOST ?? "127.0.0.1";
 const autoAdvanceSeconds = Number(
   process.env.KITCHEN_AUTO_ADVANCE_SECONDS ?? 0,
 );
+const kitchenToken = process.env.KITCHEN_TOKEN || undefined;
 
 const store = new OrderStore();
-const app = buildApp({ store, logger: true });
+const app = buildApp({ store, logger: true, kitchenToken });
+
+if (!kitchenToken) {
+  app.log.warn(
+    "KITCHEN_TOKEN is not set: the restaurant routes (list, advance) will refuse every request",
+  );
+}
 
 if (autoAdvanceSeconds > 0) {
   const stop = startAutoAdvance(store, autoAdvanceSeconds);
