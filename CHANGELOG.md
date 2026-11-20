@@ -27,3 +27,5 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Restaurant side: `npm run kitchen -- list | advance <id>`, and an optional timer
   (`KITCHEN_AUTO_ADVANCE_SECONDS`) that moves orders along. Status changes now go through one
   `OrderStore.transition` method shared by the routes and the timer.
+- README: run commands, API reference, assumptions, design write-up, tested invariants and AI
+  usage.
