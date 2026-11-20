@@ -1,3 +1,4 @@
+import type { OutgoingHttpHeaders } from "node:http";
 import { priceOrder, validateOrder, type OrderInput } from "@pizza/pricing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
@@ -343,6 +344,30 @@ describe("K-3 restaurant routes need the kitchen token", () => {
     async (method, route) => {
       const res = await call(method, route, kitchenHeaders);
       expect(res.statusCode).toBe(200);
+    },
+  );
+
+  const sneakyRequests: [
+    string,
+    "GET" | "HEAD",
+    string,
+    OutgoingHttpHeaders,
+  ][] = [
+    ["HEAD /orders", "HEAD", "/orders", {}],
+    ["a query string", "GET", "/orders?all=1", {}],
+    [
+      "the token sent twice",
+      "GET",
+      "/orders",
+      { "kitchen-token": [KITCHEN_TOKEN, KITCHEN_TOKEN] },
+    ],
+  ];
+
+  it.each(sneakyRequests)(
+    "K-3 %s is still refused",
+    async (_, method, url, headers) => {
+      const res = await app.inject({ method, url, headers });
+      expect(res.statusCode).toBe(401);
     },
   );
 

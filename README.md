@@ -16,7 +16,7 @@ npm install
 | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
-| All checks: format, lint, types, 126 tests   | `bash scripts/check.sh`                                                    |
+| All checks: format, lint, types, 137 tests   | `bash scripts/check.sh`                                                    |
 | Tests only                                   | `npm test`                                                                 |
 | Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
 
@@ -33,8 +33,8 @@ server forwards `/api/*` to the service over HTTP.
 - **Flaky-network demo:** open http://localhost:5173/?flaky. The first response is thrown away after
   the service has handled it, the builder retries with the same `Idempotency-Key`, and you still get
   exactly one order.
-- Settings: `PORT`, `HOST` and `KITCHEN_TOKEN` for the service, `SERVICE_URL` for the builder and
-  the kitchen CLI, `KITCHEN_TOKEN` for the CLI. Names are listed in `.env.example`.
+- Settings: `PORT` and `HOST` for the service, `SERVICE_URL` for the builder and the kitchen CLI,
+  and `KITCHEN_TOKEN` for the service and the kitchen CLI. `.env.example` lists the names.
 
 ## Layout
 
@@ -238,7 +238,7 @@ idempotency keys with a unique constraint.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 126 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and 137 tests. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**
@@ -250,7 +250,7 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | The service charges exactly what the shared function computes, and rejects a different expected total                                                                                  | "The total the customer sees must match the total charged"                                  | RT-1, RT-2                                              |
 | A retried submit or update is applied once; a reused key with a different body is rejected                                                                                             | Customers on mobile will retry                                                              | S-2, S-3, S-8, S-17 (including a 5xx on the last retry) |
 | Cancel and edit are refused once the kitchen starts, including when they race                                                                                                          | The lifecycle guarantee                                                                     | S-9, S-13, S-14                                         |
-| Only the restaurant, holding the kitchen token, can list all orders or advance one                                                                                                     | Customers mustn't see each other's orders or move their own along                           |
+| Only the restaurant, holding the kitchen token, can list all orders or advance one                                                                                                     | Customers mustn't see each other's orders or move their own along                           | K-3                                                     |
 | Status moves only along the allowed path                                                                                                                                               | Explicit state transitions                                                                  | S-10…S-12, K-2                                          |
 | Bad input gets a clear message, and clients can't send prices                                                                                                                          | Server-side validation                                                                      | OB-2…OB-5, T-5, PR-10, S-15, S-16                       |
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |

@@ -16,6 +16,11 @@ interface OrderSummary {
 
 async function main(args: string[]): Promise<number> {
   const [command, id] = args;
+  const known = command === "list" || (command === "advance" && id);
+  if (!known) {
+    console.error("Usage: npm run kitchen -- list | advance <order id>");
+    return 2;
+  }
   if (!kitchenToken) {
     console.error(
       "Set KITCHEN_TOKEN to the same value the service was started with.",
@@ -32,16 +37,12 @@ async function main(args: string[]): Promise<number> {
     }
     return 0;
   }
-  if (command === "advance" && id) {
-    const order = (await request(
-      "POST",
-      `/orders/${encodeURIComponent(id)}/advance`,
-    )) as OrderSummary;
-    console.log(`${order.id} is now ${order.statusLabel}`);
-    return 0;
-  }
-  console.error("Usage: npm run kitchen -- list | advance <order id>");
-  return 2;
+  const order = (await request(
+    "POST",
+    `/orders/${encodeURIComponent(id ?? "")}/advance`,
+  )) as OrderSummary;
+  console.log(`${order.id} is now ${order.statusLabel}`);
+  return 0;
 }
 
 async function request(method: string, path: string): Promise<unknown> {
