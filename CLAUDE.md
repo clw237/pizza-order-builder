@@ -1,13 +1,13 @@
-# <Project name>
+# Pizza Order Builder
 
-<One line: what this project is and who it's for.>
-Stack: <language / framework / test runner>, filled in by the `bootstrap` skill.
+Take-home exercise: a pizza order builder (web UI) and a separate order service, for interview graders.
+Stack: TypeScript, npm workspaces, Fastify (service), Vite + React (web), zod, vitest.
 
 - **Design:** `PLAN.md`. **Decisions:** `docs/decisions/`. **Process:** `CONTRIBUTING.md`.
 - **Commands.** Keep these current. Claude runs them; it doesn't guess them.
   - Check everything (format, lint, types, tests): `bash scripts/check.sh`
-  - Run the app: `<command>`
-  - Run one test: `<command>`
+  - Run the app: see README (filled in once the service and web app exist)
+  - Run one test: `npx vitest run <file> -t "<test name>"`
 - **Skills.** New project or empty repo: `bootstrap`. Any code change: `add-feature`.
   Logging bugs and ideas as issues: `log-issue`. Timed interview or code challenge: `code-challenge`.
   Switching to unrelated work or a long break: `handoff`.
@@ -15,6 +15,7 @@ Stack: <language / framework / test runner>, filled in by the `bootstrap` skill.
   `build-fixer` (smallest fix for a red check).
 
 ## Rules that always apply
+
 - Before writing code for anything larger than a one-file change, write a plan. If the owner is present, wait for them to approve it.
 - Write tests first or with the code. A change is done only when `bash scripts/check.sh` passes.
 - Never skip, disable or loosen a test, lint rule or check to get green. Fix the cause. Coverage

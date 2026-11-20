@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+package-lock.json
+CHANGELOG.md
+docs/TEMPLATE.md
+docs/PRACTICES.md
+docs/claude-code-cheatsheet.md
+docs/code-challenge-kickoff.md
+docs/decisions
+.github
+.claude
+CONTRIBUTING.md
+RELEASING.md
+SECURITY.md
+CLAUDE.md
