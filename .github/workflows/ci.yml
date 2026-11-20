@@ -32,6 +32,14 @@ jobs:
         if: hashFiles('pyproject.toml', 'package.json', 'go.mod', 'Cargo.toml', 'gradlew', '**/*.sln', '**/*.csproj') != ''
         run: bash scripts/check.sh
 
+      - name: Install the Playwright browser
+        if: hashFiles('playwright.config.ts') != ''
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end smoke test
+        if: hashFiles('playwright.config.ts') != ''
+        run: npm run e2e
+
   changelog:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest

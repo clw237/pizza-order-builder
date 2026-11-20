@@ -40,3 +40,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - The builder now keeps the `Idempotency-Key` when the last retry ends in a server error, so
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
+
+### Development
+
+- Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
+  order and places it. `npm run e2e`; CI installs Chromium and runs it.

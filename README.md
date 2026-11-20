@@ -18,6 +18,7 @@ npm install
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                  |
 | All checks: format, lint, types, 117 tests   | `bash scripts/check.sh`                                         |
 | Tests only                                   | `npm test`                                                      |
+| Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install chromium`)   |
 | Restaurant side: list orders / advance one   | `npm run kitchen -- list` and `npm run kitchen -- advance <id>` |
 
 Run the service and the builder in two terminals. They are separate processes; the builder's dev
@@ -205,8 +206,10 @@ idempotency keys with a unique constraint.
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
   update above and a TTL on keys.
 - **The restaurant is simulated** by an endpoint, a CLI and an optional timer.
-- **No UI component or browser tests in CI.** The UI's logic is in pure, unit-tested functions
-  (`draft.ts`, `api.ts`); the screens were checked by hand and with a scripted browser run.
+- **One browser test.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
+  builder on their own ports, builds an order in Chromium, and places it; CI runs it on every
+  change. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
+  `api.ts`), not by component tests.
 - **No docker compose** and no production build served by the service; run with the two commands
   above.
 - **The menu is compiled into both apps.** Changing it means redeploying both; a version skew is
@@ -235,7 +238,8 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | Bad input gets a clear message, and clients can't send prices                                                                                                                          | Server-side validation                                                                      | OB-2…OB-5, T-5, PR-10, S-15, S-16                       |
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |
 
-**Not covered, for lack of time:** UI component and end-to-end browser tests in CI. The builder's
+**Not covered, for lack of time:** UI component tests, and browser tests beyond the one smoke
+test (E2E-1). The builder's
 logic is unit tested (OB-1, RT-3, S-17); the screens themselves and PR-13, S-18 and K-1 were
 checked by hand; concurrency across several service processes
 (not possible with in-memory storage); behaviour across a service restart; load.
