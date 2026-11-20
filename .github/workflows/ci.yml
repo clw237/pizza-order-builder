@@ -33,11 +33,9 @@ jobs:
         run: bash scripts/check.sh
 
       - name: Install the Playwright browser
-        if: hashFiles('playwright.config.ts') != ''
         run: npx playwright install --with-deps chromium
 
       - name: End-to-end smoke test
-        if: hashFiles('playwright.config.ts') != ''
         run: npm run e2e
 
   changelog:

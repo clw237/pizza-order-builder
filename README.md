@@ -12,14 +12,14 @@ Prerequisite: Node.js 22.12 or later.
 npm install
 ```
 
-| What                                         | Command                                                         |
-| -------------------------------------------- | --------------------------------------------------------------- |
-| Order service (port 3000)                    | `npm run service`                                               |
-| Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                  |
-| All checks: format, lint, types, 117 tests   | `bash scripts/check.sh`                                         |
-| Tests only                                   | `npm test`                                                      |
-| Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install chromium`)   |
-| Restaurant side: list orders / advance one   | `npm run kitchen -- list` and `npm run kitchen -- advance <id>` |
+| What                                         | Command                                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| Order service (port 3000)                    | `npm run service`                                                         |
+| Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                            |
+| All checks: format, lint, types, 117 tests   | `bash scripts/check.sh`                                                   |
+| Tests only                                   | `npm test`                                                                |
+| Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`) |
+| Restaurant side: list orders / advance one   | `npm run kitchen -- list` and `npm run kitchen -- advance <id>`           |
 
 Run the service and the builder in two terminals. They are separate processes; the builder's dev
 server forwards `/api/*` to the service over HTTP.

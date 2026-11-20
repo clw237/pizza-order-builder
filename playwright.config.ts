@@ -17,7 +17,12 @@ export default defineConfig({
     {
       command: "npm run service",
       url: `http://127.0.0.1:${servicePort}/health`,
-      env: { PORT: String(servicePort) },
+      // Fixed so a developer's shell can't change the binding or move orders along mid-test.
+      env: {
+        PORT: String(servicePort),
+        HOST: "127.0.0.1",
+        KITCHEN_AUTO_ADVANCE_SECONDS: "0",
+      },
       reuseExistingServer: false,
     },
     {
