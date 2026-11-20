@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { loseFirstResponse, sendWithRetry, type FetchLike } from "../src/api";
+import {
+  isSettled,
+  loseFirstResponse,
+  sendWithRetry,
+  type FetchLike,
+  type OrderView,
+} from "../src/api";
 
 const ok = () => new Response(JSON.stringify({ id: "a" }), { status: 201 });
 const noWait = { attempts: 3, timeoutMs: 50, backoffMs: 0 };
@@ -65,5 +71,18 @@ describe("S-17 submit retries on an unreliable connection", () => {
       /timed out/,
     );
     expect(calls).toHaveLength(3);
+  });
+});
+
+describe("S-17 keeping the Idempotency-Key until the outcome is known", () => {
+  const problem = { error: "X", message: "x" };
+
+  it("a success or a 4xx is final, so the next Send may use a new key", () => {
+    expect(isSettled({ ok: true, order: {} as OrderView })).toBe(true);
+    expect(isSettled({ ok: false, status: 409, problem })).toBe(true);
+  });
+
+  it("a 5xx after the last retry is not final, so the next Send reuses the key", () => {
+    expect(isSettled({ ok: false, status: 503, problem })).toBe(false);
   });
 });

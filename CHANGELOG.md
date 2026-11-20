@@ -29,3 +29,9 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   `OrderStore.transition` method shared by the routes and the timer.
 - README: run commands, API reference, assumptions, design write-up, tested invariants and AI
   usage.
+
+### Fixed
+
+- The builder now keeps the `Idempotency-Key` when the last retry ends in a server error, so
+  pressing Send again can't create a second order.
+- The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".

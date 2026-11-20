@@ -84,17 +84,18 @@ Each percentage is rounded once, half-up, at order level.
 | ---- | ----------------------------------------------------------------------- | --------------------------------------- | --- |
 | RT-1 | Server quote for an order equals `price(order)` from the shared package | Equal, field by field                   | [A] |
 | RT-2 | Submit with wrong `expectedTotalCents`                                  | 409 with server quote; no order created | [A] |
-| RT-3 | Every change listed above updates the displayed total                   | Total changes immediately               | [M] |
+| RT-3 | Every change listed above updates the displayed total                   | Total changes immediately               | [A] |
 
 **Invariants (property tests over random valid orders)**
 
-| ID    | Invariant                                                         |     |
-| ----- | ----------------------------------------------------------------- | --- |
-| INV-1 | subtotal = Σ line totals; total = subtotal − discount + tax + tip | [A] |
-| INV-2 | Every amount is an integer ≥ 0; discount ≤ subtotal               | [A] |
-| INV-3 | Reordering line items doesn't change the total                    | [A] |
-| INV-4 | Adding a topping or increasing quantity never lowers the subtotal | [A] |
-| INV-5 | Tip never changes tax                                             | [A] |
+| ID    | Invariant                                                                      |     |
+| ----- | ------------------------------------------------------------------------------ | --- |
+| INV-1 | subtotal = Σ line totals; total = subtotal − discount + tax + tip              | [A] |
+| INV-2 | Every amount is an integer ≥ 0; discount ≤ subtotal                            | [A] |
+| INV-3 | Reordering line items doesn't change the total                                 | [A] |
+| INV-4 | Adding a pizza or a topping, or increasing quantity, never lowers the subtotal | [A] |
+| INV-5 | Tip never changes tax                                                          | [A] |
+| INV-6 | SAVE5 and ILOVEPIZZA are never both applied                                    | [A] |
 
 ## R3. Order description
 
@@ -168,7 +169,7 @@ Each percentage is rounded once, half-up, at order level.
 | S-14 | Update and advance sent concurrently                                       | Exactly one wins; no edit on a started order           | [A] |
 | S-15 | Invalid body (bad size, qty, tip, code)                                    | 400 with field messages; nothing stored                | [A] |
 | S-16 | Client sends price fields                                                  | Rejected by strict schema (400)                        | [A] |
-| S-17 | UI submit times out and retries                                            | One order created, same id shown                       | [M] |
+| S-17 | UI submit times out and retries                                            | One order created, same id shown                       | [A] |
 | S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                        | [M] |
 | K-1  | `npm run kitchen -- advance <id>`                                          | Status moves one step                                  | [M] |
 | K-2  | `KITCHEN_AUTO_ADVANCE_SECONDS=N`                                           | Orders unchanged for N seconds move one step           | [A] |
@@ -187,16 +188,16 @@ Each percentage is rounded once, half-up, at order level.
 
 ## Deliverables checklist
 
-- [ ] Hosted git repo, readable commit history
-- [ ] README: run builder, run service, run tests (one or two commands each)
-- [ ] README: API summary with example requests
-- [ ] README: Assumptions (the list above, kept in sync)
-- [ ] README: design write-up (money, extensibility, lifecycle walk-throughs, cuts and next steps)
-- [ ] README: AI usage note (tools, one rejected output, one invariant verified by hand)
-- [ ] README: which invariants are tested and why, which aren't
-- [ ] `bash scripts/check.sh` green
-- [ ] README has a requirement → code → test traceability table (IDs from this file)
-- [ ] Test names start with the ID they cover (e.g. `PR-7 SAVE5 wins when it saves more`)
+- [x] Hosted git repo, readable commit history
+- [x] README: run builder, run service, run tests (one or two commands each)
+- [x] README: API summary with example requests
+- [x] README: Assumptions (the list above, kept in sync)
+- [x] README: design write-up (money, extensibility, lifecycle walk-throughs, cuts and next steps)
+- [x] README: AI usage note (tools, one rejected output, one invariant verified by hand)
+- [x] README: which invariants are tested and why, which aren't
+- [x] `bash scripts/check.sh` green
+- [x] README has a requirement → code → test traceability table (IDs from this file)
+- [x] Test names start with the ID they cover (e.g. `PR-7 SAVE5 wins when it saves more`)
 
 ## Mock AI evaluation (before submitting)
 
