@@ -58,7 +58,7 @@ describe("pricing invariants (random valid orders)", () => {
     );
   });
 
-  it("INV-2 SAVE5 and ILOVEPIZZA are never both applied", () => {
+  it("INV-6 SAVE5 and ILOVEPIZZA are never both applied", () => {
     fc.assert(
       fc.property(orderArb, (o) => {
         expect(priceOrder(o).appliedPromos.length).toBeLessThanOrEqual(1);
@@ -83,6 +83,35 @@ describe("pricing invariants (random valid orders)", () => {
           priceOrder(o).subtotal,
         );
       }),
+    );
+  });
+
+  it("INV-4 adding a topping or raising a quantity never lowers the subtotal", () => {
+    const allToppings = MENU.toppings.map((t) => t.id);
+    fc.assert(
+      fc.property(
+        orderArb,
+        fc.nat(),
+        fc.constantFrom(...allToppings),
+        (o, pick, topping) => {
+          const index = pick % o.lines.length;
+          const target = o.lines[index]!;
+          const withTopping = target.toppingIds.includes(topping)
+            ? target
+            : { ...target, toppingIds: [...target.toppingIds, topping] };
+          const withMore = {
+            ...target,
+            quantity: Math.min(target.quantity + 1, 99),
+          };
+          const before = priceOrder(o).subtotal;
+          for (const changed of [withTopping, withMore]) {
+            const lines = o.lines.map((l, i) => (i === index ? changed : l));
+            expect(priceOrder({ ...o, lines }).subtotal).toBeGreaterThanOrEqual(
+              before,
+            );
+          }
+        },
+      ),
     );
   });
 

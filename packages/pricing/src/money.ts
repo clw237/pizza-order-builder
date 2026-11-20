@@ -10,3 +10,8 @@ export function applyRate(amount: Cents, rate: BasisPoints): Cents {
 export function formatCents(amount: Cents): string {
   return `$${(amount / 100).toFixed(2)}`;
 }
+
+/** 650 basis points → "6.5%". */
+export function formatRate(rate: BasisPoints): string {
+  return `${rate / 100}%`;
+}

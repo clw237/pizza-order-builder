@@ -2,6 +2,7 @@ import {
   MENU,
   applyRate,
   formatCents,
+  formatRate,
   type FieldError,
   type Quote,
 } from "@pizza/pricing";
@@ -183,7 +184,7 @@ export function Breakdown({ quote }: { quote: Quote | undefined }) {
             amount={-quote.discount}
           />
         )}
-        <Row label="Tax (6.5%)" amount={quote.tax} />
+        <Row label={`Tax (${formatRate(MENU.taxRate)})`} amount={quote.tax} />
         <Row label="Tip" amount={quote.tip} />
         <tr className="total">
           <th>Total</th>
