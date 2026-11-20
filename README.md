@@ -298,7 +298,7 @@ myself.
   (`docs/ACCEPTANCE.md`, "Mock AI evaluation"). It found that the builder dropped its
   `Idempotency-Key` when the last automatic retry ended in a server error, so pressing Send again
   sent a new key and could create a second order. The fix (PR #11) keeps the key until the
-  service gives a definite answer, with a test; the same pass also caught a hard-coded tax label.
+  service gives a definite answer, with a unit test of that rule; the same pass also caught a hard-coded tax label.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test, and the two most important tests were checked by
   breaking the code on purpose: switching rounding to truncation fails 15 tests, and adding one
