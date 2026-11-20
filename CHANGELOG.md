@@ -20,3 +20,7 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   Explicit state machine, `Idempotency-Key` replay on submit and update, `If-Match` versions,
   server-side repricing with an `expectedTotalCents` check. Race tests for cancel and update
   against the kitchen starting the order.
+- Web app (`apps/web`, Vite + React): order builder with a live total and breakdown, order
+  description, submit and update with automatic retries under one `Idempotency-Key`, status
+  polling, change and cancel while Not Started. `?flaky` in the URL drops the first response to
+  demonstrate a safe retry.

@@ -71,7 +71,7 @@ Each slice is runnable and tested on its own.
 2. Pricing engine: menu, toppings, promos with conflicts, tax, tips, invariants. (must) ✅
 3. Description and input validation. (must) ✅
 4. Service: endpoints, state machine, idempotency, versioning, race tests. (must) ✅
-5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must)
+5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must) ✅
 6. Kitchen CLI and optional timer. (must: CLI; cut first: timer)
 7. TMNT / Magic theme. (cuttable)
 8. `docker compose up`. (cuttable)
