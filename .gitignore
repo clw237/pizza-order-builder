@@ -31,6 +31,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Go / Rust / JVM / .NET
 /bin/

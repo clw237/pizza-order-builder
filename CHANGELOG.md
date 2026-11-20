@@ -46,3 +46,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - `GET /orders` and `POST /orders/:id/advance` now require a `Kitchen-Token` header matching the
   service's `KITCHEN_TOKEN` (401 otherwise, and always 401 when it isn't set). The kitchen CLI
   sends it.
+
+### Development
+
+- Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
+  order and places it. `npm run e2e`; CI installs Chromium and runs it.
