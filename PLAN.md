@@ -54,7 +54,7 @@ persistent storage.
 - **Money:** integer cents; rates in basis points; `applyRate` rounds half-up with integer math.
   Each percentage is applied once at order level.
 - **Extensibility:** sizes, categories (with rate) and toppings are data. A promo is
-  `{code, conflictsWith[], evaluate(subtotal) → {eligible, discount, reason}}` in a registry.
+  `{code, conflictsWith[], evaluate({subtotal, pizzaCount}) → {eligible, discount | reason}}` in a registry.
   Conflicts are resolved by keeping the larger discount (ties: registry order).
 - **Lifecycle:** `NOT_STARTED → STARTED → READY_FOR_PICKUP → DELIVERED`, plus
   `NOT_STARTED → CANCELLED`. Transitions are checked and applied in one synchronous step, so a
@@ -68,7 +68,7 @@ persistent storage.
 Each slice is runnable and tested on its own.
 
 1. Walking skeleton: workspace, check green, one pricing test. ✅
-2. Pricing engine: menu, toppings, promos with conflicts, tax, tips, invariants. (must)
+2. Pricing engine: menu, toppings, promos with conflicts, tax, tips, invariants. (must) ✅
 3. Description and input validation. (must)
 4. Service: endpoints, state machine, idempotency, versioning, race tests. (must)
 5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must)
