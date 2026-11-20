@@ -33,8 +33,11 @@ let app: App;
 let keyCounter = 0;
 const newKey = () => `key-${++keyCounter}`;
 
+const KITCHEN_TOKEN = "test-kitchen-token";
+const kitchenHeaders = { "kitchen-token": KITCHEN_TOKEN };
+
 beforeEach(() => {
-  app = buildApp();
+  app = buildApp({ kitchenToken: KITCHEN_TOKEN });
 });
 
 afterEach(async () => {
@@ -73,7 +76,13 @@ function update(
 const cancelOrder = (id: string) =>
   app.inject({ method: "POST", url: `/orders/${id}/cancel` });
 const advanceOrder = (id: string) =>
-  app.inject({ method: "POST", url: `/orders/${id}/advance` });
+  app.inject({
+    method: "POST",
+    url: `/orders/${id}/advance`,
+    headers: kitchenHeaders,
+  });
+const listOrders = () =>
+  app.inject({ method: "GET", url: "/orders", headers: kitchenHeaders });
 const getOrder = (id: string) =>
   app.inject({ method: "GET", url: `/orders/${id}` });
 
@@ -106,9 +115,7 @@ describe("submitting an order", () => {
       error: "PRICE_MISMATCH",
       quote: { total: 1419 },
     });
-    expect(
-      (await app.inject({ method: "GET", url: "/orders" })).json(),
-    ).toHaveLength(0);
+    expect((await listOrders()).json()).toHaveLength(0);
   });
 
   it("S-2 a retry with the same key and body returns the same order, stored once", async () => {
@@ -116,9 +123,7 @@ describe("submitting an order", () => {
     const retry = await submit(largeBacon, "retry-1");
     expect(retry.statusCode).toBe(201);
     expect(retry.json()).toEqual(first.json());
-    expect(
-      (await app.inject({ method: "GET", url: "/orders" })).json(),
-    ).toHaveLength(1);
+    expect((await listOrders()).json()).toHaveLength(1);
   });
 
   it("S-3 the same key with a different body is rejected", async () => {
@@ -297,5 +302,76 @@ describe("races between the customer and the kitchen", () => {
       expect(final.version).toBe(u.statusCode === 200 ? 2 : 1);
       if (u.statusCode !== 200) expect(u.statusCode).toBe(409);
     }
+  });
+});
+
+describe("K-3 restaurant routes need the kitchen token", () => {
+  const restaurantRoutes = [
+    ["GET", "/orders"],
+    ["POST", "/orders/:id/advance"],
+  ] as const;
+
+  async function call(
+    method: "GET" | "POST",
+    route: string,
+    headers: Record<string, string>,
+  ) {
+    const { id } = await created();
+    return app.inject({ method, url: route.replace(":id", id), headers });
+  }
+
+  it.each(restaurantRoutes)(
+    "K-3 %s %s without a token is 401",
+    async (method, route) => {
+      const res = await call(method, route, {});
+      expect(res.statusCode).toBe(401);
+      expect(res.json()).toMatchObject({ error: "KITCHEN_TOKEN_REQUIRED" });
+    },
+  );
+
+  it.each(restaurantRoutes)(
+    "K-3 %s %s with a wrong token is 401",
+    async (method, route) => {
+      const res = await call(method, route, { "kitchen-token": "wrong" });
+      expect(res.statusCode).toBe(401);
+      expect(res.json()).toMatchObject({ error: "KITCHEN_TOKEN_REQUIRED" });
+    },
+  );
+
+  it.each(restaurantRoutes)(
+    "K-3 %s %s with the right token succeeds",
+    async (method, route) => {
+      const res = await call(method, route, kitchenHeaders);
+      expect(res.statusCode).toBe(200);
+    },
+  );
+
+  it("K-3 a refused kitchen call changes nothing", async () => {
+    const { id } = await created();
+    await app.inject({ method: "POST", url: `/orders/${id}/advance` });
+    expect((await getOrder(id)).json()).toMatchObject({
+      status: "NOT_STARTED",
+    });
+  });
+
+  it("K-3 with no token configured, restaurant routes are closed", async () => {
+    const unconfigured = buildApp();
+    try {
+      const res = await unconfigured.inject({
+        method: "GET",
+        url: "/orders",
+        headers: { "kitchen-token": "" },
+      });
+      expect(res.statusCode).toBe(401);
+      expect(res.json().message).toMatch(/KITCHEN_TOKEN/);
+    } finally {
+      await unconfigured.close();
+    }
+  });
+
+  it("K-3 customer routes don't need the token", async () => {
+    const { id } = await created();
+    expect((await getOrder(id)).statusCode).toBe(200);
+    expect((await cancelOrder(id)).statusCode).toBe(200);
   });
 });

@@ -171,8 +171,9 @@ Each percentage is rounded once, half-up, at order level.
 | S-16 | Client sends price fields                                                  | Rejected by strict schema (400)                        | [A] |
 | S-17 | UI submit times out and retries                                            | One order created, same id shown                       | [A] |
 | S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                        | [M] |
-| K-1  | `npm run kitchen -- advance <id>`                                          | Status moves one step                                  | [M] |
+| K-1  | `KITCHEN_TOKEN=… npm run kitchen -- advance <id>`                          | Status moves one step                                  | [M] |
 | K-2  | `KITCHEN_AUTO_ADVANCE_SECONDS=N`                                           | Orders unchanged for N seconds move one step           | [A] |
+| K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset      | [A] |
 
 ## R6. Extensibility
 

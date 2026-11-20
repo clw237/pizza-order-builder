@@ -1,9 +1,11 @@
 /**
- * The restaurant side, from a terminal. Talks to the running service over HTTP.
- *   npm run kitchen -- list
- *   npm run kitchen -- advance <order id>
+ * The restaurant side, from a terminal. Talks to the running service over HTTP and sends the
+ * KITCHEN_TOKEN it was started with.
+ *   KITCHEN_TOKEN=<token> npm run kitchen -- list
+ *   KITCHEN_TOKEN=<token> npm run kitchen -- advance <order id>
  */
 const serviceUrl = process.env.SERVICE_URL ?? "http://127.0.0.1:3000";
+const kitchenToken = process.env.KITCHEN_TOKEN;
 
 interface OrderSummary {
   id: string;
@@ -14,6 +16,12 @@ interface OrderSummary {
 
 async function main(args: string[]): Promise<number> {
   const [command, id] = args;
+  if (!kitchenToken) {
+    console.error(
+      "Set KITCHEN_TOKEN to the same value the service was started with.",
+    );
+    return 2;
+  }
   if (command === "list") {
     const orders = (await request("GET", "/orders")) as OrderSummary[];
     if (orders.length === 0) console.log("No orders yet.");
@@ -37,7 +45,10 @@ async function main(args: string[]): Promise<number> {
 }
 
 async function request(method: string, path: string): Promise<unknown> {
-  const response = await fetch(`${serviceUrl}${path}`, { method });
+  const response = await fetch(`${serviceUrl}${path}`, {
+    method,
+    headers: { "kitchen-token": kitchenToken ?? "" },
+  });
   const body = (await response.json()) as { message?: string };
   if (!response.ok) throw new Error(body.message ?? `HTTP ${response.status}`);
   return body;
