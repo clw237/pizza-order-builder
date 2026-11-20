@@ -14,5 +14,5 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["packages", "apps", "*.ts"]
+  "include": ["packages", "apps", "e2e", "*.ts"]
 }
