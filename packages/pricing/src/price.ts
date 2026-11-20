@@ -6,7 +6,7 @@ import {
   type ToppingCategory,
 } from "./menu";
 import { applyRate, formatCents, type BasisPoints, type Cents } from "./money";
-import { PROMOS, type Promo } from "./promos";
+import { PROMOS, normalizeCodes, type Promo } from "./promos";
 
 export interface LineItem {
   sizeId: string;
@@ -115,11 +115,7 @@ function resolvePromos(
   subtotal: Cents,
   pizzaCount: number,
 ): PromoResolution {
-  const codes = [
-    ...new Set(
-      rawCodes.map((c) => c.trim().toUpperCase()).filter((c) => c !== ""),
-    ),
-  ];
+  const codes = normalizeCodes(rawCodes);
   const promoNotices: PromoNotice[] = [];
   const candidates: { promo: Promo; discount: Cents; rank: number }[] = [];
 

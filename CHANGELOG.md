@@ -13,3 +13,6 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Pricing engine: menu and promo registry as data, integer-cent money with half-up rounding,
   conflicting promo codes resolved to the larger discount, dollar and percent tips. Example tests
   for every pricing row in `docs/ACCEPTANCE.md` and property tests for the pricing invariants.
+- Order description (`describeOrder`) and input validation shared by the web app and service:
+  zod schema that rejects price fields, menu id checks, duplicate toppings, unknown promo codes,
+  and exact tip parsing from text.

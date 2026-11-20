@@ -45,3 +45,12 @@ export const PROMOS: Promo[] = [
           },
   },
 ];
+
+/** Codes are trimmed and case-insensitive; a code entered twice counts once. */
+export function normalizeCodes(codes: string[]): string[] {
+  return [
+    ...new Set(
+      codes.map((c) => c.trim().toUpperCase()).filter((c) => c !== ""),
+    ),
+  ];
+}
