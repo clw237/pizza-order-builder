@@ -16,3 +16,7 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Order description (`describeOrder`) and input validation shared by the web app and service:
   zod schema that rejects price fields, menu id checks, duplicate toppings, unknown promo codes,
   and exact tip parsing from text.
+- Order service (`apps/service`, Fastify): submit, get, list, update, cancel and advance.
+  Explicit state machine, `Idempotency-Key` replay on submit and update, `If-Match` versions,
+  server-side repricing with an `expectedTotalCents` check. Race tests for cancel and update
+  against the kitchen starting the order.

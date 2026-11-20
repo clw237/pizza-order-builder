@@ -54,7 +54,7 @@ describe("R4 tip parsing", () => {
 });
 
 describe("order validation", () => {
-  it("accepts a valid order and returns the domain order", () => {
+  it("accepts a valid order and returns the domain order and the input", () => {
     expect(validateOrder(valid)).toEqual({
       ok: true,
       order: {
@@ -62,6 +62,7 @@ describe("order validation", () => {
         promoCodes: [],
         tip: { mode: "dollars", cents: 0 },
       },
+      input: valid,
     });
   });
 
