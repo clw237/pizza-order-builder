@@ -9,6 +9,7 @@
   "scripts": {
     "service": "npm start -w @pizza/service",
     "web": "npm run dev -w @pizza/web",
+    "kitchen": "tsx apps/service/src/kitchen-cli.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint .",

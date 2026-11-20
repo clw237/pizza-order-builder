@@ -169,6 +169,7 @@ Each percentage is rounded once, half-up, at order level.
 | S-17 | UI submit times out and retries                                            | One order created, same id shown                       | [M] |
 | S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                        | [M] |
 | K-1  | `npm run kitchen -- advance <id>`                                          | Status moves one step                                  | [M] |
+| K-2  | `KITCHEN_AUTO_ADVANCE_SECONDS=N`                                           | Orders unchanged for N seconds move one step           | [A] |
 
 ## R6. Extensibility
 
