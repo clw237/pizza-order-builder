@@ -1,10 +1,11 @@
 **/node_modules
 .git
 # Docs and tooling config: the containers never read them, and leaving them out means editing them
-# doesn't invalidate the source layer.
+# doesn't invalidate the source layer. "*.md" matches the root only (README, PLAN, CHANGELOG...).
 .claude
 .github
 docs
+*.md
 .env
 .env.*
 !.env.example
