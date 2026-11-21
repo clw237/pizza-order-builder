@@ -1,5 +1,10 @@
 **/node_modules
 .git
+# Docs and tooling config: the containers never read them, and leaving them out means editing them
+# doesn't invalidate the source layer.
+.claude
+.github
+docs
 .env
 .env.*
 !.env.example
