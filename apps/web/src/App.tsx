@@ -185,7 +185,7 @@ export function App({
 
   async function cancel() {
     if (!placed) return;
-    const result = await run(() => api.cancel(placed.id));
+    const result = await run(() => api.cancel(placed.id, crypto.randomUUID()));
     if (!result) return;
     if (result.ok) {
       setPlaced(result.order);

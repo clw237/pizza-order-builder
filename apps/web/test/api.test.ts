@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createApi,
   isSettled,
   latest,
   loseFirstResponse,
@@ -106,5 +107,16 @@ describe("background refreshes never undo a newer copy of the order", () => {
   it("takes the fetched copy when nothing is shown or it is a different order", () => {
     expect(latest(null, older)).toBe(older);
     expect(latest(newer, { ...older, id: "b" })).toEqual({ ...older, id: "b" });
+  });
+});
+
+describe("S-20 cancel can't be sent as a cross-site simple request", () => {
+  it("sends the caller's Idempotency-Key with the cancel", async () => {
+    const { calls, fetchFn } = recorder([ok]);
+    await createApi(fetchFn).cancel("order-1", "cancel-key");
+    expect(new Headers(calls[0]!.headers).get("idempotency-key")).toBe(
+      "cancel-key",
+    );
+    expect(calls[0]!.method).toBe("POST");
   });
 });

@@ -11,9 +11,21 @@ if (!scheduleResult.ok) {
 }
 const schedule = scheduleResult.schedule;
 const kitchenToken = process.env.KITCHEN_TOKEN || undefined;
+// Comma-separated browser origins allowed to send POST and PUT; unset means the dev builder.
+const listedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
+const allowedOrigins = listedOrigins.length > 0 ? listedOrigins : undefined;
 
 const store = new OrderStore();
-const app = buildApp({ store, logger: true, kitchenToken, schedule });
+const app = buildApp({
+  store,
+  logger: true,
+  kitchenToken,
+  schedule,
+  allowedOrigins,
+});
 
 if (!kitchenToken) {
   app.log.warn(

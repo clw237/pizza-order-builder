@@ -178,6 +178,8 @@ Each percentage is rounded once, half to even, at order level.
 | S-17 | UI submit times out and retries                                            | One order created, same id shown                                                                | [A] |
 | S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                                                                 | [M] |
 | S-19 | UI: track an order by pasted ID or link, or by opening `?order=<id>`       | Order view shown with status; bad text or unknown ID → clear message, no order shown            | [A] |
+| S-20 | Cancel as a `text/plain` POST with no `Idempotency-Key`                    | 400 `MISSING_IDEMPOTENCY_KEY`; the order stays Not Started; the builder sends a key             | [A] |
+| S-21 | POST or PUT with `Origin: https://evil.example`; with the builder's origin | 403 `ORIGIN_NOT_ALLOWED`, nothing changes; the builder's origin and no Origin are allowed       | [A] |
 | K-1  | `KITCHEN_TOKEN=… npm run kitchen -- advance <id>`                          | Status moves one step                                                                           | [M] |
 | K-2  | Timer on (default 20 s per step, or `KITCHEN_AUTO_ADVANCE_SECONDS=N`)      | Orders unchanged for N seconds move one step                                                    | [A] |
 | K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset                                               | [A] |
