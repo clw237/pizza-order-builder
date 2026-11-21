@@ -79,6 +79,19 @@ restaurant routes and the CLI refuse every request until you run `up` again with
 | `docs/ACCEPTANCE.md` | Acceptance criteria and test cases with IDs; most test names start with these IDs           |
 | `PLAN.md`            | Plan and build order                                                                        |
 
+**Repository tooling, not part of the exercise.** These come from my `claude-starter` template and
+are how the AI's work was kept in check: they set its working rules and fail a change that breaks
+them. None of it is needed to run or review the exercise.
+
+| Path                                                                  | What                                                                                                                    |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.md`, `.claude/`                                               | Claude Code's working rules, skills, review subagents and edit hooks                                                    |
+| `scripts/check.sh`                                                    | The one check (format, lint, types, tests) that CI and every change run                                                 |
+| `scripts/check_changelog.py`, `scripts/scan_agent_files.py`           | CI guardrails: a changelog line per change; no hidden instructions in agent files                                       |
+| `.github/`, `.pre-commit-config.yaml`                                 | CI workflows, the `main` branch ruleset, PR template                                                                    |
+| `CONTRIBUTING.md`, `RELEASING.md`, `SECURITY.md`, `docs/PRACTICES.md` | The process: issues, branches, pull requests, releases                                                                  |
+| `docs/decisions/`                                                     | Records for the tooling choices (0001–0003); the exercise's decisions are the Assumptions and the Design write-up below |
+
 ## Order service API
 
 All bodies are JSON. Money is integer cents. Errors are `{ "error": CODE, "message": "...", ... }`.
@@ -378,4 +391,4 @@ myself.
   half-up fails 6. Adding one `await` inside a status change makes the cancel-versus-kitchen race
   test fail.
 
-Built from the claude-starter template (see `docs/TEMPLATE.md`).
+Built from my `claude-starter` template; see "Repository tooling" under Layout.
