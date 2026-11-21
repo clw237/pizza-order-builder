@@ -55,6 +55,8 @@ jobs:
     timeout-minutes: 15
     env:
       KITCHEN_TOKEN: ci-only-placeholder
+      # The smoke script moves the order itself, so the timer must not move it first.
+      KITCHEN_AUTO_ADVANCE_SECONDS: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

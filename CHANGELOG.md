@@ -29,11 +29,15 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   `OrderStore.transition` method shared by the routes and the timer.
 - README: run commands, API reference, assumptions, design write-up, tested invariants and AI
   usage.
+- Per-step kitchen timings (`KITCHEN_SECONDS_TO_START`, `_TO_READY`, `_TO_DELIVER`; 0 = by hand).
+  Orders report `nextStatus` and `nextStatusAt`, and the builder counts down to the next step.
 - `docker compose up --build` runs the service and the builder in two containers from one
   image, with health checks; `scripts/compose-smoke.sh` checks the running stack, and CI runs both.
 
 ### Changed
 
+- The kitchen timer is on by default: each order moves one step after 20 seconds in a status.
+  `KITCHEN_AUTO_ADVANCE_SECONDS=0` turns it off, as before.
 - Discount, tax and percentage tips round half to even (banker's rounding) instead of half-up,
   so a small plain pizza now costs $5.32 (tax 32.5¢ → 32¢).
 

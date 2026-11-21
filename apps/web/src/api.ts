@@ -12,6 +12,9 @@ export interface OrderView {
   quote: Quote;
   createdAt: string;
   updatedAt: string;
+  /** Set when the kitchen timer will move the order on; null for a manual step or a final status. */
+  nextStatus: OrderView["status"] | null;
+  nextStatusAt: string | null;
 }
 
 export interface ApiProblem {

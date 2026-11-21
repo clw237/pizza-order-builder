@@ -18,6 +18,7 @@ import {
   type Refusal,
   type Transition,
 } from "./lifecycle";
+import { MANUAL_KITCHEN, nextStep, type KitchenSchedule } from "./kitchen";
 import { OrderStore, type StoredOrder } from "./store";
 
 export interface AppOptions {
@@ -26,6 +27,8 @@ export interface AppOptions {
   now?: () => Date;
   /** Secret the restaurant sends in the `Kitchen-Token` header. Unset means those routes are closed. */
   kitchenToken?: string | undefined;
+  /** The kitchen timer's delays, reported on each order as its next step. Default: every step manual. */
+  schedule?: KitchenSchedule;
 }
 
 interface Problem {
@@ -43,6 +46,8 @@ type IdParams = { Params: { id: string } };
 export function buildApp(options: AppOptions = {}) {
   const store = options.store ?? new OrderStore();
   const now = options.now ?? (() => new Date());
+  const schedule = options.schedule ?? MANUAL_KITCHEN;
+  const show = (order: StoredOrder) => view(order, schedule);
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 16 * 1024,
@@ -76,13 +81,13 @@ export function buildApp(options: AppOptions = {}) {
   app.get("/orders", async (request, reply) => {
     const denied = kitchenDenial(request, options.kitchenToken);
     if (denied) return send(reply, denied);
-    return store.list().map(view);
+    return store.list().map(show);
   });
 
   app.get<IdParams>("/orders/:id", async (request, reply) => {
     const order = store.get(request.params.id);
     if (!order) return send(reply, notFound(request.params.id));
-    return view(order);
+    return show(order);
   });
 
   app.post("/orders", async (request, reply) => {
@@ -106,7 +111,7 @@ export function buildApp(options: AppOptions = {}) {
       updatedAt: timestamp,
     };
     store.save(order);
-    return remember(reply, scope, fingerprint, 201, view(order));
+    return remember(reply, scope, fingerprint, 201, show(order));
   });
 
   app.put<IdParams>("/orders/:id", async (request, reply) => {
@@ -123,7 +128,7 @@ export function buildApp(options: AppOptions = {}) {
     const current = store.get(request.params.id);
     if (!current) return send(reply, notFound(request.params.id));
     if (!canEdit(current.status))
-      return send(reply, refused(editRefusal(current.status), current));
+      return send(reply, refused(editRefusal(current.status), show(current)));
 
     const version = expectedVersion(request);
     if (!version.ok) return send(reply, version.problem);
@@ -133,7 +138,7 @@ export function buildApp(options: AppOptions = {}) {
         body: {
           error: "VERSION_CONFLICT",
           message: `The order changed since you loaded it (now version ${current.version}). Reload and try again.`,
-          order: view(current),
+          order: show(current),
         },
       });
     }
@@ -148,7 +153,7 @@ export function buildApp(options: AppOptions = {}) {
       updatedAt: now().toISOString(),
     };
     store.save(updated);
-    return remember(reply, scope, fingerprint, 200, view(updated));
+    return remember(reply, scope, fingerprint, 200, show(updated));
   });
 
   app.post<IdParams>("/orders/:id/cancel", async (request, reply) =>
@@ -172,9 +177,9 @@ export function buildApp(options: AppOptions = {}) {
       return send(reply, notFound(request.params.id));
     }
     if (outcome.kind === "refused") {
-      return send(reply, refused(outcome.refusal, outcome.order));
+      return send(reply, refused(outcome.refusal, show(outcome.order)));
     }
-    return view(outcome.order);
+    return show(outcome.order);
   }
 
   function replayFor(scope: string, fingerprint: string): Problem | undefined {
@@ -320,7 +325,8 @@ function expectedVersion(request: FastifyRequest): Result<number> {
   return { ok: true, value: Number(match[1]) };
 }
 
-function view(order: StoredOrder) {
+function view(order: StoredOrder, schedule: KitchenSchedule) {
+  const next = nextStep(order, schedule);
   return {
     id: order.id,
     status: order.status,
@@ -331,13 +337,18 @@ function view(order: StoredOrder) {
     quote: order.quote,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
+    nextStatus: next?.status ?? null,
+    nextStatusAt: next?.at.toISOString() ?? null,
   };
 }
 
-function refused({ code, message }: Refusal, order: StoredOrder): Problem {
+function refused(
+  { code, message }: Refusal,
+  order: ReturnType<typeof view>,
+): Problem {
   return {
     statusCode: 409,
-    body: { error: code, message, order: view(order) },
+    body: { error: code, message, order },
   };
 }
 

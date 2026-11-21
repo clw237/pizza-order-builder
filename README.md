@@ -16,7 +16,7 @@ npm install
 | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
-| All checks: format, lint, types, 137 tests   | `bash scripts/check.sh`                                                    |
+| All checks: format, lint, types, 155 tests   | `bash scripts/check.sh`                                                    |
 | Tests only                                   | `npm test`                                                                 |
 | Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`)  |
 | Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
@@ -34,9 +34,8 @@ KITCHEN_TOKEN=dev-secret bash scripts/compose-smoke.sh   # optional check of the
 ```
 
 The same image runs both apps as separate containers; the builder's container forwards `/api/*`
-to the `service` container. Ports are published on `127.0.0.1` only. `KITCHEN_TOKEN` and
-`KITCHEN_AUTO_ADVANCE_SECONDS` are read from your shell or a `.env` file (`.env.example` lists
-them). Set the token when you run `up`: the containers keep the value they started with,
+to the `service` container. Ports are published on `127.0.0.1` only. `KITCHEN_TOKEN` and the
+kitchen timer variables are read from your shell or a `.env` file (`.env.example` lists them). Set the token when you run `up`: the containers keep the value they started with,
 and the kitchen CLI inside the service container uses that same value. Started without one, the
 restaurant routes and the CLI refuse every request until you run `up` again with a token.
 
@@ -45,8 +44,13 @@ restaurant routes and the CLI refuse every request until you run `up` again with
   service and the kitchen CLI (`dev-secret` above is only an example). Without it the service still
   runs, but those routes answer 401. The builder doesn't need it.
 
-- **Kitchen timer (optional):** `KITCHEN_AUTO_ADVANCE_SECONDS=20 npm run service` moves each order
-  one step after it has gone 20 seconds without a status change or an edit. Off by default.
+- **Kitchen timer (on by default):** the service moves each order one step after it has spent 20
+  seconds in a status without a change or an edit, so an order goes Not Started → Started → Ready
+  for Pickup → Delivered on its own in about a minute. The builder counts down to the next step
+  ("Started in about 12s"). Per step: `KITCHEN_SECONDS_TO_START`, `KITCHEN_SECONDS_TO_READY`,
+  `KITCHEN_SECONDS_TO_DELIVER`; `KITCHEN_AUTO_ADVANCE_SECONDS` sets all three. `0` leaves a step
+  to the kitchen CLI, so `KITCHEN_AUTO_ADVANCE_SECONDS=0` turns the timer off. An invalid value
+  stops the service with a message saying which variable is wrong.
 - **Flaky-network demo:** open http://localhost:5173/?flaky. The first response is thrown away after
   the service has handled it, the builder retries with the same `Idempotency-Key`, and you still get
   exactly one order.
@@ -95,9 +99,14 @@ Response (shortened):
   "version": 1,
   "description": "2 × Medium pizza with pepperoni, bacon",
   "order": { "lines": [ … ], "promoCodes": ["ILOVEPIZZA"], "tip": { "mode": "percent", "value": "20" } },
-  "quote": { "subtotal": 1666, "appliedPromos": ["ILOVEPIZZA"], "promoNotices": [], "discount": 167, "tax": 97, "tip": 319, "total": 1915, "lines": [ … ] }
+  "quote": { "subtotal": 1666, "appliedPromos": ["ILOVEPIZZA"], "promoNotices": [], "discount": 167, "tax": 97, "tip": 319, "total": 1915, "lines": [ … ] },
+  "nextStatus": "STARTED",
+  "nextStatusAt": "2026-11-21T00:20:20.000Z"
 }
 ```
+
+`nextStatus` and `nextStatusAt` say when the kitchen timer will move the order on; both are `null`
+when that step is left to the kitchen or the order is Delivered or Cancelled.
 
 Update and cancel:
 
@@ -240,7 +249,7 @@ idempotency keys with a unique constraint.
 
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
   update above and a TTL on keys.
-- **The restaurant is simulated** by an endpoint, a CLI and an optional timer.
+- **The restaurant is simulated** by an endpoint, a CLI and a timer (on by default).
 - **One browser test.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
   builder on their own ports, builds an order in Chromium, and places it; CI runs it on every
   change and, when it fails, uploads the trace and screenshot as the `playwright-traces` artifact. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
@@ -252,7 +261,9 @@ idempotency keys with a unique constraint.
   service.
 - **A replayed response is the original one,** so a retry after the order moved on shows the old
   status until the next poll.
-- **Status updates are polled** every 3 seconds until the order is Delivered or Cancelled. Next:
+- **Status updates are polled** every 3 seconds until the order is Delivered or Cancelled, plus
+  one fetch just after the timer's next step is due. The countdown compares the service's time
+  with the browser's clock, so across machines it is only as good as their clocks. Next:
   push them with Server-Sent Events (`GET /orders/:id/events`) as soon as a status changes, and
   keep polling as the fallback when the stream drops.
 - **Each topping at most once per pizza** (assumption 9). Next: double toppings, so a topping can
@@ -262,7 +273,7 @@ idempotency keys with a unique constraint.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 137 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and 155 tests. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**

@@ -400,3 +400,76 @@ describe("K-3 restaurant routes need the kitchen token", () => {
     expect((await cancelOrder(id)).statusCode).toBe(200);
   });
 });
+
+describe("K-5 orders report when the kitchen timer moves them next", () => {
+  const start = new Date("2026-01-01T12:00:00.000Z");
+  const schedule = { NOT_STARTED: 20, STARTED: 60, READY_FOR_PICKUP: 0 };
+
+  function timedApp() {
+    return buildApp({
+      kitchenToken: KITCHEN_TOKEN,
+      schedule,
+      now: () => start,
+    });
+  }
+
+  async function place(timed: App) {
+    const res = await timed.inject({
+      method: "POST",
+      url: "/orders",
+      headers: { "idempotency-key": newKey() },
+      payload: body(largeBacon),
+    });
+    expect(res.statusCode).toBe(201);
+    return res.json<{
+      id: string;
+      nextStatus: string | null;
+      nextStatusAt: string | null;
+    }>();
+  }
+
+  it("K-5 a new order says it starts after the first delay", async () => {
+    const timed = timedApp();
+    try {
+      expect(await place(timed)).toMatchObject({
+        nextStatus: "STARTED",
+        nextStatusAt: "2026-01-01T12:00:20.000Z",
+      });
+    } finally {
+      await timed.close();
+    }
+  });
+
+  it("K-5 after each step the next delay applies, and a manual step reports null", async () => {
+    const timed = timedApp();
+    try {
+      const { id } = await place(timed);
+      const advance = () =>
+        timed.inject({
+          method: "POST",
+          url: `/orders/${id}/advance`,
+          headers: kitchenHeaders,
+        });
+      expect((await advance()).json()).toMatchObject({
+        status: "STARTED",
+        nextStatus: "READY_FOR_PICKUP",
+        nextStatusAt: "2026-01-01T12:01:00.000Z",
+      });
+      expect((await advance()).json()).toMatchObject({
+        status: "READY_FOR_PICKUP",
+        nextStatus: null,
+        nextStatusAt: null,
+      });
+    } finally {
+      await timed.close();
+    }
+  });
+
+  it("K-5 with no schedule every step is manual", async () => {
+    const { id } = await created();
+    expect((await getOrder(id)).json()).toMatchObject({
+      nextStatus: null,
+      nextStatusAt: null,
+    });
+  });
+});
