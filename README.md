@@ -83,15 +83,15 @@ restaurant routes and the CLI refuse every request until you run `up` again with
 
 All bodies are JSON. Money is integer cents. Errors are `{ "error": CODE, "message": "...", ... }`.
 
-| Method and path            | Purpose                 | Notes                                                                          |
-| -------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| `POST /orders`             | Submit an order         | Requires `Idempotency-Key`. 201 with the order                                 |
-| `GET /orders/:id`          | Order and its status    | 404 if unknown                                                                 |
-| `GET /orders`              | Restaurant: all orders  | Requires `Kitchen-Token`; 401 if missing or wrong. Used by the kitchen CLI     |
-| `PUT /orders/:id`          | Replace the order       | Requires `Idempotency-Key` and `If-Match: <version>`. Only while Not Started   |
-| `POST /orders/:id/cancel`  | Cancel                  | Only while Not Started. Cancelling a cancelled order returns 200 again         |
-| `POST /orders/:id/advance` | Restaurant: next status | Requires `Kitchen-Token`. Not Started → Started → Ready for Pickup → Delivered |
-| `GET /health`              | Liveness                |                                                                                |
+| Method and path            | Purpose                 | Notes                                                                            |
+| -------------------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| `POST /orders`             | Submit an order         | Requires `Idempotency-Key`. 201 with the order                                   |
+| `GET /orders/:id`          | Order and its status    | 404 if unknown                                                                   |
+| `GET /orders`              | Restaurant: all orders  | Requires `Kitchen-Token`; 401 if missing or wrong. Used by the kitchen CLI       |
+| `PUT /orders/:id`          | Replace the order       | Requires `Idempotency-Key` and `If-Match: <version>`. Only while Not Started     |
+| `POST /orders/:id/cancel`  | Cancel                  | Requires `Idempotency-Key`. Only while Not Started. Cancelling again returns 200 |
+| `POST /orders/:id/advance` | Restaurant: next status | Requires `Kitchen-Token`. Not Started → Started → Ready for Pickup → Delivered   |
+| `GET /health`              | Liveness                |                                                                                  |
 
 Submit (`expectedTotalCents` is the total the customer was shown):
 
@@ -126,7 +126,7 @@ Update and cancel:
 curl -s -X PUT localhost:3000/orders/<id> \
   -H "content-type: application/json" -H "idempotency-key: 2a41-demo" -H "if-match: 1" \
   -d '{"order":{"lines":[{"sizeId":"large","quantity":1,"toppingIds":[]}],"promoCodes":[],"tip":{"mode":"dollars","value":""}},"expectedTotalCents":1278}'
-curl -s -X POST localhost:3000/orders/<id>/cancel
+curl -s -X POST localhost:3000/orders/<id>/cancel -H "idempotency-key: 5c2e-demo"
 ```
 
 | Status                                                            | When                                                                                    |
@@ -173,7 +173,8 @@ Where the brief left something open, this is what I decided. Each one is impleme
 13. **An update replaces the whole order** (items, codes, tip) and is repriced; it is allowed only
     while Not Started.
 14. **Retries:** clients send an `Idempotency-Key` on submit and update and reuse it on every retry
-    of the same request. Cancel needs no key because cancelling twice has the same result.
+    of the same request. Cancel requires one too, so another site can't send it as a simple
+    request, but doesn't replay it: cancelling twice already has the same result.
 15. **One restaurant, one service process,** in-memory storage (the brief allows it). Restarting
     the service forgets orders.
 
@@ -254,6 +255,11 @@ idempotency keys with a unique constraint.
   random UUID, which acts as the customer's capability to view, change or cancel it. The builder
   shows the ID and a `?order=<id>` link so the customer can come back to it, so anyone the ID or
   link is shared with has the same access. The builder only sends text shaped like a UUID.
+- **Cross-site requests are refused.** Every POST and PUT needs a header a plain HTML form or
+  `text/plain` fetch can't send (`Idempotency-Key` or `Kitchen-Token`), so another site's page
+  would need a CORS preflight, which the service never answers. POST and PUT whose `Origin` isn't
+  the builder's (`ALLOWED_ORIGINS`, default `http://localhost:5173` and `http://127.0.0.1:5173`)
+  get 403 before any handler runs.
 - **Input is bounded:** 16 KB bodies, at most 50 line items, quantities 1–99, strict schemas.
 - **Known limit: memory grows without bound.** Orders and idempotency keys stay in memory until the
   service restarts, and nothing limits request rates, so a flood of submissions grows the process

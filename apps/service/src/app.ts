@@ -29,7 +29,14 @@ export interface AppOptions {
   kitchenToken?: string | undefined;
   /** The kitchen timer's delays, reported on each order as its next step. Default: every step manual. */
   schedule?: KitchenSchedule;
+  /** Browser origins allowed to send POST and PUT. Default: the dev builder on port 5173. */
+  allowedOrigins?: string[] | undefined;
 }
+
+export const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 interface Problem {
   statusCode: number;
@@ -48,6 +55,9 @@ export function buildApp(options: AppOptions = {}) {
   const now = options.now ?? (() => new Date());
   const schedule = options.schedule ?? MANUAL_KITCHEN;
   const show = (order: StoredOrder) => view(order, schedule);
+  const allowedOrigins = new Set(
+    options.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS,
+  );
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 16 * 1024,
@@ -74,6 +84,18 @@ export function buildApp(options: AppOptions = {}) {
       message: `No route for ${request.method} ${request.url}`,
     }),
   );
+
+  // Another site's page can make the customer's browser POST here. When a browser says where a
+  // state-changing request comes from and it isn't the builder, refuse before any handler runs.
+  app.addHook("onRequest", async (request, reply) => {
+    const origin = request.headers.origin;
+    if (request.method !== "POST" && request.method !== "PUT") return;
+    if (origin === undefined || allowedOrigins.has(origin)) return;
+    return reply.code(403).send({
+      error: "ORIGIN_NOT_ALLOWED",
+      message: `Requests from ${origin} are not allowed`,
+    });
+  });
 
   app.get("/health", async () => ({ ok: true }));
 
@@ -156,9 +178,13 @@ export function buildApp(options: AppOptions = {}) {
     return remember(reply, scope, fingerprint, 200, show(updated));
   });
 
-  app.post<IdParams>("/orders/:id/cancel", async (request, reply) =>
-    transition(request, reply, cancel),
-  );
+  // The key is required, not replayed (cancel is already idempotent, S-10): a custom header
+  // can't be sent cross-site without a preflight, which this service never answers.
+  app.post<IdParams>("/orders/:id/cancel", async (request, reply) => {
+    const key = idempotencyKey(request);
+    if (!key.ok) return send(reply, key.problem);
+    return transition(request, reply, cancel);
+  });
 
   /** Restaurant side: moves an order one step along the kitchen's path. */
   app.post<IdParams>("/orders/:id/advance", async (request, reply) => {
