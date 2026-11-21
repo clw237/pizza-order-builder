@@ -345,6 +345,14 @@ myself.
   `Idempotency-Key` when the last automatic retry ended in a server error, so pressing Send again
   sent a new key and could create a second order. The fix (PR #11) keeps the key until the
   service gives a definite answer, with a unit test of that rule; the same pass also caught a hard-coded tax label.
+- **Separate Claude sessions, each with one job.** Alongside the build session I ran:
+  - **a persona-based evaluation:** a new session given only the repo and the brief, asked to
+    evaluate the submission as an evaluator hiring for the role;
+  - **a feedback and issue session** that captured my feedback and managed it as GitHub issues,
+    with priorities and decided or open questions, which the build sessions then worked from;
+  - **a penetration test session** that probed the service and the repo, then logged every
+    finding as a prioritized `security` issue (#39 to #47), confirming several against a running
+    service.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test. After the switch to banker's rounding I broke the
   rounding myself to see whether the tests notice: truncating fails 15 tests, and going back to
