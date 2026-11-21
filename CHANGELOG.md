@@ -33,6 +33,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   Orders report `nextStatus` and `nextStatusAt`, and the builder counts down to the next step.
 - `docker compose up --build` runs the service and the builder in two containers from one
   image, with health checks; `scripts/compose-smoke.sh` checks the running stack, and CI runs both.
+- Track an order by its ID: the confirmation screen shows a Copy ID button and a `?order=<id>`
+  link, and the start screen has a "Track an order" box. An unknown ID says "No order with that ID."
 
 ### Changed
 
@@ -56,6 +58,6 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 ### Development
 
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
-  order and places it. `npm run e2e`; CI installs Chromium and runs it.
+  order and places it. E2E-2 tracks a placed order by its ID after a reload. `npm run e2e`; CI installs Chromium and runs it.
 - When the browser test fails in CI, its trace, screenshot and HTML report are uploaded as the
   `playwright-traces` artifact (kept 7 days).

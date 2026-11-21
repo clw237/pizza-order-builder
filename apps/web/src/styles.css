@@ -76,3 +76,15 @@ body {
 pre {
   white-space: pre-wrap;
 }
+
+.track {
+  margin-bottom: 24px;
+}
+
+.track input {
+  width: min(100%, 24rem);
+}
+
+code {
+  overflow-wrap: anywhere;
+}

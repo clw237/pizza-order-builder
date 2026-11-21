@@ -88,7 +88,7 @@ CI before it goes to the owner.
     (P-3, PR-7) already land on even and stay. Update assumption 3 and its example in the README
     and `docs/ACCEPTANCE.md`, and re-count how many tests fail when rounding is broken on purpose
     (the README cites that number).
-11. **Kitchen token.** `GET /orders` and `POST /orders/:id/advance` require a `KITCHEN_TOKEN`
+11. **Kitchen token.** `GET /orders` and `POST /orders/:id/advance` require a `Kitchen-Token`
     header matching the service's `KITCHEN_TOKEN` environment variable; missing or wrong → 401.
     The kitchen CLI sends it; `.env.example` lists the name; tests cover missing, wrong and right
     tokens. README: API table, run commands, and a short security note (restaurant routes are
@@ -113,3 +113,12 @@ retries, input limits. Changed: rounding (§5.1 item 10), kitchen token (11), e2
 (13). Deferred: theme, double toppings, SSE push. Owner to do: import the `main` ruleset; run the
 rounding check personally after item 10, then the AI note's "verified" bullet is reworded in the
 owner's voice.
+
+Final-hour decisions:
+
+- The kitchen header stays `Kitchen-Token`, in the code and the README.
+- The CI `compose` job stays an optional check; the `main` ruleset is unchanged.
+- No local `docker compose` rebuild or smoke test in the final hour; the CI `compose` job covers
+  it. `ci.yml` is unchanged, to save time for the theme.
+- Customers track an order by its ID (S-19, E2E-2). The UUID stays the only capability; no
+  accounts or extra secret.
