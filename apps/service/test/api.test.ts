@@ -75,7 +75,11 @@ function update(
 }
 
 const cancelOrder = (id: string) =>
-  app.inject({ method: "POST", url: `/orders/${id}/cancel` });
+  app.inject({
+    method: "POST",
+    url: `/orders/${id}/cancel`,
+    headers: { "idempotency-key": newKey() },
+  });
 const advanceOrder = (id: string) =>
   app.inject({
     method: "POST",
@@ -487,6 +491,7 @@ describe("K-5 orders report when the kitchen timer moves them next", () => {
       const cancelled = await timed.inject({
         method: "POST",
         url: `/orders/${id}/cancel`,
+        headers: { "idempotency-key": newKey() },
       });
       expect(cancelled.json()).toMatchObject({
         status: "CANCELLED",
@@ -510,6 +515,7 @@ describe("K-5 orders report when the kitchen timer moves them next", () => {
       const res = await timed.inject({
         method: "POST",
         url: `/orders/${id}/cancel`,
+        headers: { "idempotency-key": newKey() },
       });
       expect(res.statusCode).toBe(409);
       expect(res.json().order).toMatchObject({
@@ -527,5 +533,84 @@ describe("K-5 orders report when the kitchen timer moves them next", () => {
       nextStatus: null,
       nextStatusAt: null,
     });
+  });
+});
+
+describe("cross-site requests", () => {
+  it("S-20 a cancel without an Idempotency-Key is rejected, even as a text/plain simple request", async () => {
+    const id = (await submit(largeBacon)).json().id;
+    const res = await app.inject({
+      method: "POST",
+      url: `/orders/${id}/cancel`,
+      headers: { "content-type": "text/plain" },
+      payload: "x",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("MISSING_IDEMPOTENCY_KEY");
+    expect((await getOrder(id)).json().status).toBe("NOT_STARTED");
+  });
+
+  it("S-21 a POST or PUT from a foreign Origin is refused before it changes anything", async () => {
+    const id = (await submit(largeBacon)).json().id;
+    const evil = {
+      origin: "https://evil.example",
+      "idempotency-key": newKey(),
+    };
+    const cancel = await app.inject({
+      method: "POST",
+      url: `/orders/${id}/cancel`,
+      headers: evil,
+    });
+    expect(cancel.statusCode).toBe(403);
+    expect(cancel.json().error).toBe("ORIGIN_NOT_ALLOWED");
+    const create = await app.inject({
+      method: "POST",
+      url: "/orders",
+      headers: evil,
+      payload: body(largeBacon),
+    });
+    expect(create.statusCode).toBe(403);
+    expect((await getOrder(id)).json().status).toBe("NOT_STARTED");
+  });
+
+  it("S-21 the builder's own origin and requests without an Origin are allowed", async () => {
+    const id = (await submit(largeBacon)).json().id;
+    const res = await app.inject({
+      method: "POST",
+      url: `/orders/${id}/cancel`,
+      headers: {
+        origin: "http://localhost:5173",
+        "idempotency-key": newKey(),
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe("CANCELLED");
+  });
+
+  it("S-21 the allowed origins come from config", async () => {
+    const custom = buildApp({ allowedOrigins: ["http://127.0.0.1:5174"] });
+    const headers = {
+      "idempotency-key": newKey(),
+      "content-type": "application/json",
+    };
+    const ok = await custom.inject({
+      method: "POST",
+      url: "/orders",
+      headers: { ...headers, origin: "http://127.0.0.1:5174" },
+      payload: body(largeBacon),
+    });
+    expect(ok.statusCode).toBe(201);
+    const refused = await custom.inject({
+      method: "POST",
+      url: "/orders",
+      headers: {
+        ...headers,
+        "idempotency-key": newKey(),
+        origin: "http://localhost:5173",
+      },
+      payload: body(largeBacon),
+    });
+    expect(refused.statusCode).toBe(403);
+    await custom.close();
   });
 });

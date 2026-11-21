@@ -57,6 +57,9 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - `GET /orders` and `POST /orders/:id/advance` now require a `Kitchen-Token` header matching the
   service's `KITCHEN_TOKEN` (401 otherwise, and always 401 when it isn't set). The kitchen CLI
   sends it.
+- Another website can no longer cancel a customer's order: cancel now requires an
+  `Idempotency-Key` (the builder sends one), and POST and PUT from an `Origin` outside
+  `ALLOWED_ORIGINS` get 403 (#39).
 
 ### Development
 

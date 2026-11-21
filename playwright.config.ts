@@ -24,6 +24,7 @@ export default defineConfig({
       env: {
         PORT: String(servicePort),
         HOST: "127.0.0.1",
+        ALLOWED_ORIGINS: `http://127.0.0.1:${webPort}`,
         KITCHEN_AUTO_ADVANCE_SECONDS: "0",
         KITCHEN_SECONDS_TO_START: "",
         KITCHEN_SECONDS_TO_READY: "",
