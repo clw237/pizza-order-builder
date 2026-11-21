@@ -243,7 +243,7 @@ idempotency keys with a unique constraint.
 - **The restaurant is simulated** by an endpoint, a CLI and an optional timer.
 - **One browser test.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
   builder on their own ports, builds an order in Chromium, and places it; CI runs it on every
-  change. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
+  change and, when it fails, uploads the trace and screenshot as the `playwright-traces` artifact. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
   `api.ts`), not by component tests.
 - **No production build.** Both `npm run web` and `docker compose up` run the Vite dev server;
   the service doesn't serve a built builder.
