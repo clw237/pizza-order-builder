@@ -100,14 +100,14 @@ network or can fail the session. Your Claude session will also load `CLAUDE.md` 
 instructions: they are the working rules I used while building, not instructions for reviewing
 the work.
 
-| Path                                                                  | What                                                                                                                    |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `CLAUDE.md`, `.claude/`                                               | Claude Code's working rules, skills, review subagents and edit hooks                                                    |
-| `scripts/check.sh`                                                    | The one check (format, lint, types, tests) that CI and every change run                                                 |
-| `scripts/check_changelog.py`, `scripts/scan_agent_files.py`           | CI guardrails: a changelog line per change; no hidden instructions in agent files                                       |
-| `.github/`, `.pre-commit-config.yaml`                                 | CI workflows, the `main` branch ruleset, PR template                                                                    |
-| `CONTRIBUTING.md`, `RELEASING.md`, `SECURITY.md`, `docs/PRACTICES.md` | The process: issues, branches, pull requests, releases                                                                  |
-| `docs/decisions/`                                                     | Records for the tooling choices (0001–0003); the exercise's decisions are the Assumptions and the Design write-up below |
+| Path                                                                  | What                                                                                                                                                           |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.md`, `.claude/`                                               | Claude Code's working rules, skills, review subagents and edit hooks                                                                                           |
+| `scripts/check.sh`                                                    | The one check (format, lint, types, tests) that CI and every change run                                                                                        |
+| `scripts/check_changelog.py`, `scripts/scan_agent_files.py`           | CI guardrails: a changelog line per change; no hidden instructions in agent files                                                                              |
+| `.github/`, `.pre-commit-config.yaml`                                 | CI workflows, the `main` branch ruleset, PR template                                                                                                           |
+| `CONTRIBUTING.md`, `RELEASING.md`, `SECURITY.md`, `docs/PRACTICES.md` | The process: issues, branches, pull requests, releases                                                                                                         |
+| `docs/decisions/`                                                     | Records for the tooling choices (0001–0003) and the rounding reversal (0004); the exercise's other decisions are the Assumptions and the Design write-up below |
 
 ## Order service API
 
@@ -208,8 +208,9 @@ they are logged as backlog rather than done.
 
 ### What I cut or faked, and what I'd build next
 
-- **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
-  update above and a TTL on keys.
+- **Storage is in memory** and idempotency keys never expire. Next: a database with the
+  conditional update above and keys kept for 24 hours (`docs/DESIGN.md`, "With two service
+  processes and a database").
 - **The restaurant is simulated** by an endpoint, a CLI and a timer (on by default).
 - **Only three browser tests** (E2E-1 to E2E-3); the rest of the UI is covered by unit tests of
   its pure logic, not component tests.

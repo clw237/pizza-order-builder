@@ -15,6 +15,7 @@ Closes #
 <!-- Things found along the way that are out of scope, to turn into issues. Or "none". -->
 
 ## Checklist
+- [ ] This pull request targets `main`, not another branch
 - [ ] `bash scripts/check.sh` passes
 - [ ] Checked in the running app, not just in tests
 - [ ] The `code-reviewer` subagent (or `/code-review`) was run on the diff and its findings fixed
