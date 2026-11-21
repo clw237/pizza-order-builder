@@ -465,6 +465,62 @@ describe("K-5 orders report when the kitchen timer moves them next", () => {
     }
   });
 
+  it("K-5 an edit restarts the clock, and a cancelled order has no next step", async () => {
+    let clock = start;
+    const timed = buildApp({
+      kitchenToken: KITCHEN_TOKEN,
+      schedule,
+      now: () => clock,
+    });
+    try {
+      const { id } = await place(timed);
+      clock = new Date("2026-01-01T12:00:15.000Z");
+      const edited = await timed.inject({
+        method: "PUT",
+        url: `/orders/${id}`,
+        headers: { "idempotency-key": newKey(), "if-match": "1" },
+        payload: body(twoMediums),
+      });
+      expect(edited.json()).toMatchObject({
+        nextStatusAt: "2026-01-01T12:00:35.000Z",
+      });
+      const cancelled = await timed.inject({
+        method: "POST",
+        url: `/orders/${id}/cancel`,
+      });
+      expect(cancelled.json()).toMatchObject({
+        status: "CANCELLED",
+        nextStatus: null,
+        nextStatusAt: null,
+      });
+    } finally {
+      await timed.close();
+    }
+  });
+
+  it("K-5 a refused change returns the order with its next step", async () => {
+    const timed = timedApp();
+    try {
+      const { id } = await place(timed);
+      await timed.inject({
+        method: "POST",
+        url: `/orders/${id}/advance`,
+        headers: kitchenHeaders,
+      });
+      const res = await timed.inject({
+        method: "POST",
+        url: `/orders/${id}/cancel`,
+      });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().order).toMatchObject({
+        status: "STARTED",
+        nextStatus: "READY_FOR_PICKUP",
+      });
+    } finally {
+      await timed.close();
+    }
+  });
+
   it("K-5 with no schedule every step is manual", async () => {
     const { id } = await created();
     expect((await getOrder(id)).json()).toMatchObject({

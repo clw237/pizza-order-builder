@@ -1,6 +1,12 @@
 import { describeOrder, formatCents, validateOrder } from "@pizza/pricing";
 import { useEffect, useMemo, useState } from "react";
-import { isSettled, type Api, type ApiResult, type OrderView } from "./api";
+import {
+  isSettled,
+  latest,
+  type Api,
+  type ApiResult,
+  type OrderView,
+} from "./api";
 import { Breakdown, Builder } from "./Builder";
 import { emptyDraft, evaluate, fromOrderInput, type Draft } from "./draft";
 import { describeNextStep } from "./timing";
@@ -33,7 +39,7 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
     const timer = setInterval(async () => {
       try {
         const result = await api.get(placed.id);
-        if (result.ok) setPlaced(result.order);
+        if (result.ok) setPlaced((current) => latest(current, result.order));
       } catch {
         // Polling is best effort; the next tick tries again.
       }
@@ -51,15 +57,19 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
     const tick = setInterval(() => setNow(new Date()), 1000);
     const due =
       Math.max(0, Date.parse(nextStatusAt) - Date.now()) + DUE_GRACE_MS;
+    let active = true;
     const refresh = setTimeout(async () => {
       try {
         const result = await api.get(placedId);
-        if (result.ok) setPlaced(result.order);
+        if (active && result.ok) {
+          setPlaced((current) => latest(current, result.order));
+        }
       } catch {
         // Best effort, like polling: the next poll tries again.
       }
     }, due);
     return () => {
+      active = false;
       clearInterval(tick);
       clearTimeout(refresh);
     };

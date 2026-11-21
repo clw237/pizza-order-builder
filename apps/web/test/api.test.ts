@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isSettled,
+  latest,
   loseFirstResponse,
   sendWithRetry,
   type FetchLike,
@@ -84,5 +85,26 @@ describe("S-17 keeping the Idempotency-Key until the outcome is known", () => {
 
   it("a 5xx after the last retry is not final, so the next Send reuses the key", () => {
     expect(isSettled({ ok: false, status: 503, problem })).toBe(false);
+  });
+});
+
+describe("background refreshes never undo a newer copy of the order", () => {
+  const at = (updatedAt: string) => ({ id: "a", updatedAt }) as OrderView;
+  const older = at("2026-01-01T12:00:00.000Z");
+  const newer = at("2026-01-01T12:00:05.000Z");
+
+  it("keeps the current order when the fetched copy is older", () => {
+    expect(latest(newer, older)).toBe(newer);
+  });
+
+  it("takes the fetched copy when it is newer or the same age", () => {
+    expect(latest(older, newer)).toBe(newer);
+    const same = at("2026-01-01T12:00:00.000Z");
+    expect(latest(older, same)).toBe(same);
+  });
+
+  it("takes the fetched copy when nothing is shown or it is a different order", () => {
+    expect(latest(null, older)).toBe(older);
+    expect(latest(newer, { ...older, id: "b" })).toEqual({ ...older, id: "b" });
   });
 });

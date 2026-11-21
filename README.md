@@ -16,7 +16,7 @@ npm install
 | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
-| All checks: format, lint, types, 155 tests   | `bash scripts/check.sh`                                                    |
+| All checks: format, lint, types, 161 tests   | `bash scripts/check.sh`                                                    |
 | Tests only                                   | `npm test`                                                                 |
 | Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`)  |
 | Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
@@ -30,13 +30,21 @@ server forwards `/api/*` to the service over HTTP.
 KITCHEN_TOKEN=dev-secret docker compose up --build
 # open http://localhost:5173; in another terminal:
 docker compose exec service npm run kitchen -- list
-KITCHEN_TOKEN=dev-secret bash scripts/compose-smoke.sh   # optional check of the running stack
+```
+
+To check a running stack with `scripts/compose-smoke.sh`, start it with the timer off, since the
+script moves the order itself:
+
+```bash
+KITCHEN_TOKEN=dev-secret KITCHEN_AUTO_ADVANCE_SECONDS=0 docker compose up --build --wait --detach
+KITCHEN_TOKEN=dev-secret bash scripts/compose-smoke.sh
 ```
 
 The same image runs both apps as separate containers; the builder's container forwards `/api/*`
 to the `service` container. Ports are published on `127.0.0.1` only. `KITCHEN_TOKEN` and the
-kitchen timer variables are read from your shell or a `.env` file (`.env.example` lists them). Set the token when you run `up`: the containers keep the value they started with,
-and the kitchen CLI inside the service container uses that same value. Started without one, the
+kitchen timer variables are read from your shell or a `.env` file (`.env.example` lists them).
+Set the token when you run `up`: the containers keep the value they started with, and the kitchen
+CLI inside the service container uses that same value. Started without one, the
 restaurant routes and the CLI refuse every request until you run `up` again with a token.
 
 - **Kitchen token:** the restaurant routes (list all orders, advance one) need a `Kitchen-Token`
@@ -273,7 +281,7 @@ idempotency keys with a unique constraint.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 155 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and 161 tests. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**

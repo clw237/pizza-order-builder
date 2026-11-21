@@ -2,6 +2,8 @@ import type { OrderInput } from "@pizza/pricing";
 import { describe, expect, it } from "vitest";
 import {
   autoAdvanceDue,
+  isManual,
+  MANUAL_KITCHEN,
   nextStep,
   readSchedule,
   type KitchenSchedule,
@@ -148,6 +150,13 @@ describe("K-4 reading the kitchen schedule from the environment", () => {
         expect(result.message).toMatch(/KITCHEN_SECONDS_TO_READY/);
     },
   );
+});
+
+describe("K-4 a schedule with every step at 0 is manual", () => {
+  it("is manual only when no step has a delay", () => {
+    expect(isManual(MANUAL_KITCHEN)).toBe(true);
+    expect(isManual({ ...MANUAL_KITCHEN, STARTED: 5 })).toBe(false);
+  });
 });
 
 describe("store transitions", () => {

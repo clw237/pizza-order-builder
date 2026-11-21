@@ -177,9 +177,9 @@ Each percentage is rounded once, half to even, at order level.
 | S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                                                                 | [M] |
 | K-1  | `KITCHEN_TOKEN=… npm run kitchen -- advance <id>`                          | Status moves one step                                                                           | [M] |
 | K-2  | Timer on (default 20 s per step, or `KITCHEN_AUTO_ADVANCE_SECONDS=N`)      | Orders unchanged for N seconds move one step                                                    | [A] |
+| K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset                                               | [A] |
 | K-4  | Per-step delays; `0` for a step; invalid values                            | Each status waits its own delay; 0 = CLI only; bad value stops startup with the variable's name | [A] |
 | K-5  | Order view and builder show the next step                                  | `nextStatus`/`nextStatusAt` set or null; "Started in about 12s"                                 | [A] |
-| K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset                                               | [A] |
 
 ## R6. Extensibility
 
