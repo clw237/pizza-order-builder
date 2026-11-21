@@ -1,7 +1,7 @@
 # 0001. Start from the claude-starter template
 
 - Status: Accepted
-- Date: <YYYY-MM-DD>
+- Date: 2026-11-20
 
 ## Context
 New projects are built mostly by Claude Code with an owner reviewing. Without guardrails, sessions
