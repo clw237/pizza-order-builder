@@ -82,31 +82,43 @@ export function Builder({ draft, onChange, errors }: BuilderProps) {
                 className={`toppings toppings-${category.id}`}
               >
                 <h3>{category.label} toppings</h3>
-                {MENU.toppings
-                  .filter((t) => t.categoryId === category.id)
-                  .map((topping) => {
-                    const selected = line.toppingIds.includes(topping.id);
-                    return (
-                      <label
-                        key={topping.id}
-                        className={selected ? "topping selected" : "topping"}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() =>
-                            onChange(toggleTopping(draft, line.key, topping.id))
-                          }
-                        />
-                        {topping.label}
-                        {size && (
-                          <span className="cost">
-                            +{formatCents(applyRate(size.price, category.rate))}
+                <div className="cards">
+                  {MENU.toppings
+                    .filter((t) => t.categoryId === category.id)
+                    .map((topping) => {
+                      const selected = line.toppingIds.includes(topping.id);
+                      return (
+                        // Each topping is a little trading card; picking it "taps" (turns) it.
+                        <label
+                          key={topping.id}
+                          className={selected ? "card tapped" : "card"}
+                        >
+                          <input
+                            type="checkbox"
+                            className="card-input"
+                            checked={selected}
+                            onChange={() =>
+                              onChange(
+                                toggleTopping(draft, line.key, topping.id),
+                              )
+                            }
+                          />
+                          <span className="card-name">{topping.label}</span>
+                          {size && (
+                            <span className="mana">
+                              +
+                              {formatCents(
+                                applyRate(size.price, category.rate),
+                              )}
+                            </span>
+                          )}
+                          <span className="card-type" aria-hidden="true">
+                            {category.label} topping
                           </span>
-                        )}
-                      </label>
-                    );
-                  })}
+                        </label>
+                      );
+                    })}
+                </div>
               </div>
             ))}
             {errorFor(`lines.${index}`).map((message) => (
@@ -130,6 +142,9 @@ export function Builder({ draft, onChange, errors }: BuilderProps) {
       {errorFor("promoCodes").map((message) => (
         <p key={message} className="error">
           {message}
+          {message.startsWith("Unknown promo code") && (
+            <span className="flavor"> That spell fizzles.</span>
+          )}
         </p>
       ))}
       <h3>Tip</h3>

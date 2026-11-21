@@ -264,9 +264,9 @@ idempotency keys with a unique constraint.
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
   update above and a TTL on keys.
 - **The restaurant is simulated** by an endpoint, a CLI and a timer (on by default).
-- **Two browser tests.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
+- **Three browser tests.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
   builder on their own ports, builds an order in Chromium, and places it; E2E-2
-  (`e2e/track-order.spec.ts`) tracks that order by its ID and link, and checks a stale link. CI runs them on every
+  (`e2e/track-order.spec.ts`) tracks that order by its ID and link, and checks a stale link; E2E-3 toggles a topping card from the keyboard. CI runs them on every
   change and, when it fails, uploads the trace and screenshot as the `playwright-traces` artifact. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
   `api.ts`, `tracking.ts`), not by component tests.
 - **No production build.** Both `npm run web` and `docker compose up` run the Vite dev server;
@@ -283,8 +283,7 @@ idempotency keys with a unique constraint.
   keep polling as the fallback when the stream drops.
 - **Each topping at most once per pizza** (assumption 9). Next: double toppings, so a topping can
   be added twice, shown with a ×2 badge and charged twice, which changes that assumption.
-- **Not built (per the brief):** customer accounts and login, payments, menu admin, multiple locations. A TMNT-themed skin
-  is parked on the `feature/theme` branch.
+- **Not built (per the brief):** customer accounts and login, payments, menu admin, multiple locations.
 
 ## Tests
 
@@ -305,8 +304,8 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | Bad input gets a clear message, and clients can't send prices                                                                                                                          | Server-side validation                                                                      | OB-2…OB-5, T-5, PR-10, S-15, S-16                       |
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |
 
-**Not covered, for lack of time:** UI component tests, and browser tests beyond the two smoke
-tests (E2E-1, E2E-2). The builder's
+**Not covered, for lack of time:** UI component tests, and browser tests beyond the three smoke
+tests (E2E-1 to E2E-3). The builder's
 logic is unit tested (OB-1, RT-3, S-17); the screens themselves and PR-13, S-18 and K-1 were
 checked by hand; concurrency across several service processes
 (not possible with in-memory storage); behaviour across a service restart; load.

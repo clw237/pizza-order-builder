@@ -74,7 +74,7 @@ Each slice is runnable and tested on its own.
 4. Service: endpoints, state machine, idempotency, versioning, race tests. (must) ✅
 5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must) ✅
 6. Kitchen CLI and optional timer. (must: CLI; cut first: timer) ✅
-7. TMNT / Magic theme. (cut for now: parked on `feature/theme`)
+7. TMNT / Magic theme. (styling only) ✅
 8. `docker compose up`. (only if time remains after 10–13) ✅
 9. README ✅, mock AI evaluation ✅, fixes (PR #11).
 

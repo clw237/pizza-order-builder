@@ -42,6 +42,9 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   `KITCHEN_AUTO_ADVANCE_SECONDS=0` turns it off, as before.
 - Discount, tax and percentage tips round half to even (banker's rounding) instead of half-up,
   so a small plain pizza now costs $5.32 (tax 32.5¢ → 32¢).
+- The web app has a TMNT look with card-game touches: a sewer-brick background, comic panels,
+  bandana colours per pizza, toppings as cards that tilt when picked, and flavour text next to
+  the order status. Styling only; prices, labels and behaviour are unchanged.
 
 ### Fixed
 
