@@ -17,6 +17,15 @@ const POLL_MS = 3000;
 const DUE_GRACE_MS = 1200;
 const FINAL: OrderView["status"][] = ["DELIVERED", "CANCELLED"];
 
+/** Flavor text only; the real status label always comes first. */
+const TURN_PHASE: Record<OrderView["status"], string> = {
+  NOT_STARTED: "Untap step",
+  STARTED: "Main phase",
+  READY_FOR_PICKUP: "Combat: ready to attack",
+  DELIVERED: "End step",
+  CANCELLED: "Countered",
+};
+
 interface Pending {
   fingerprint: string;
   key: string;
@@ -164,7 +173,7 @@ export function App({
     if (result.ok) {
       setPlaced(result.order);
       setEditing(false);
-      setMessage(editing ? "Order updated." : "Order sent!");
+      setMessage(editing ? "Order updated." : "Cowabunga! Order sent.");
       return;
     }
     setMessage(result.problem.message);
@@ -241,6 +250,7 @@ export function App({
     <main>
       <header>
         <h1>Pizza Order Builder</h1>
+        <p className="tagline">Hot slices, delivered straight to the sewer.</p>
         {flaky && (
           <p className="notice">
             Flaky network demo: the first response is dropped and retried.
@@ -262,6 +272,7 @@ export function App({
             <strong className={`status status-${placed.status}`}>
               {placed.statusLabel}
             </strong>{" "}
+            <em className="flavor">· {TURN_PHASE[placed.status]}</em>{" "}
             <button type="button" onClick={copyId}>
               Copy ID
             </button>

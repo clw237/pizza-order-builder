@@ -82,13 +82,14 @@ Each percentage is rounded once, half to even, at order level.
 | P-7 | 1 L plain + 2 M chicken                  | 2754        | 0        | 179        | 0   | **2933** | [A] |
 | P-8 | 1 L with all 12 toppings                 | 2568        | 0        | 167        | 0   | **2735** | [A] |
 
-| ID    | Case                                                                                                      | Expected                                                                      |     |
-| ----- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --- |
-| RT-1  | Server quote for an order equals `price(order)` from the shared package                                   | Equal, field by field                                                         | [A] |
-| RT-2  | Submit with wrong `expectedTotalCents`                                                                    | 409 with server quote; no order created                                       | [A] |
-| RT-3  | Every change listed above updates the displayed total                                                     | Total changes immediately                                                     | [A] |
-| E2E-1 | In Chromium against the real service: 1 L pepperoni + ILOVEPIZZA, then send (`npm run e2e`, not vitest)   | $12.42 shown, then charged; order Not Started                                 | [A] |
-| E2E-2 | Send, reload, track by the shown ID from a fresh visit, start over; an unknown ID; a stale `?order=` link | Same order, Not Started; "No order with that ID."; a stale link never reopens | [A] |
+| ID    | Case                                                                                                      | Expected                                                                                              |     |
+| ----- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --- |
+| RT-1  | Server quote for an order equals `price(order)` from the shared package                                   | Equal, field by field                                                                                 | [A] |
+| RT-2  | Submit with wrong `expectedTotalCents`                                                                    | 409 with server quote; no order created                                                               | [A] |
+| RT-3  | Every change listed above updates the displayed total                                                     | Total changes immediately                                                                             | [A] |
+| E2E-1 | In Chromium against the real service: 1 L pepperoni + ILOVEPIZZA, then send (`npm run e2e`, not vitest)   | $12.42 shown, then charged; order Not Started                                                         | [A] |
+| E2E-2 | Send, reload, track by the shown ID from a fresh visit, start over; an unknown ID; a stale `?order=` link | Same order, Not Started; "No order with that ID."; a stale link never reopens                         | [A] |
+| E2E-3 | In Chromium: focus the pepperoni topping card and press Space twice, then click the card                  | Checked and the summary changes; unchecked and back as before; the click checks it and tilts the card | [A] |
 
 **Invariants (property tests over random valid orders)**
 

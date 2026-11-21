@@ -1,12 +1,54 @@
+/* A sewer-lair look: brick and slime green, with bandana colors per pizza. Styling only. */
 :root {
+  --slime: #5fbf3a;
+  --sewer: #1d2a1a;
+  --brick: #3a2a22;
+  --paper: #fffbe8;
+  --ink: #1a1a1a;
+  --red: #d7263d;
+  --blue: #1b6ec2;
+  --purple: #7b3fa0;
+  --orange: #f08a24;
+  --rare: #c9a227;
   font-family: system-ui, sans-serif;
   line-height: 1.4;
+  color: var(--ink);
 }
 
 body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--sewer);
+  background-image:
+    linear-gradient(var(--brick) 2px, transparent 2px),
+    linear-gradient(90deg, var(--brick) 2px, transparent 2px);
+  background-size: 48px 24px;
+}
+
+main {
   margin: 0 auto;
   max-width: 1100px;
   padding: 16px;
+}
+
+h1,
+h2,
+legend {
+  font-family: Impact, "Arial Black", system-ui, sans-serif;
+  letter-spacing: 1px;
+}
+
+h1 {
+  color: var(--slime);
+  font-size: 3rem;
+  margin: 0;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.tagline,
+header .notice {
+  color: var(--paper);
+  margin-top: 0;
 }
 
 .layout {
@@ -21,6 +63,18 @@ body {
   }
 }
 
+.builder,
+.summary,
+.placed,
+.message,
+.track {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 16px;
+}
+
 .summary {
   align-self: start;
   position: sticky;
@@ -28,17 +82,93 @@ body {
 }
 
 .line {
+  border: 3px solid var(--red);
+  border-radius: 8px;
   margin-bottom: 16px;
 }
 
-.topping {
-  display: inline-flex;
-  gap: 4px;
-  margin: 2px 12px 2px 0;
+.line:nth-of-type(4n + 2) {
+  border-color: var(--blue);
 }
 
-.cost {
-  color: #666;
+.line:nth-of-type(4n + 3) {
+  border-color: var(--purple);
+}
+
+.line:nth-of-type(4n + 4) {
+  border-color: var(--orange);
+}
+
+/* Topping cards. A picked card is "tapped": tilted, like turning a card in a card game. */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.card {
+  background: #f4efe1;
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  height: 104px;
+  justify-content: space-between;
+  padding: 6px;
+  position: relative;
+  transition: transform 0.2s ease;
+  width: 96px;
+}
+
+.toppings-premium .card {
+  border-color: var(--rare);
+  background: #fff6d6;
+}
+
+.card.tapped {
+  transform: rotate(12deg);
+  background: var(--slime);
+}
+
+.card:has(:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.card-name {
+  font-weight: bold;
+}
+
+.mana {
+  align-self: flex-end;
+  background: var(--ink);
+  border-radius: 999px;
+  color: var(--paper);
+  font-size: 0.75rem;
+  padding: 1px 6px;
+}
+
+.card-type {
+  border-top: 1px solid var(--ink);
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+/* The real checkbox covers the whole card, transparent, so a click anywhere on it is a click on the box. */
+.card-input {
+  cursor: pointer;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.flavor {
+  color: #555;
+  font-style: italic;
 }
 
 .breakdown {
@@ -46,8 +176,8 @@ body {
 }
 
 .breakdown th {
-  text-align: left;
   font-weight: normal;
+  text-align: left;
 }
 
 .breakdown td {
@@ -56,6 +186,7 @@ body {
 
 .breakdown .total th,
 .breakdown .total td {
+  font-size: 1.2rem;
   font-weight: bold;
 }
 
@@ -67,10 +198,42 @@ body {
   color: #555;
 }
 
+button {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 10px;
+}
+
+button.primary {
+  background: var(--slime);
+  font-family: Impact, "Arial Black", system-ui, sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .summary button {
   display: block;
   margin: 8px 0;
   width: 100%;
+}
+
+.status {
+  background: var(--slime);
+  border-radius: 4px;
+  padding: 0 6px;
+}
+
+.status-CANCELLED {
+  background: var(--red);
+  color: var(--paper);
 }
 
 pre {
@@ -87,4 +250,10 @@ pre {
 
 code {
   overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
 }
