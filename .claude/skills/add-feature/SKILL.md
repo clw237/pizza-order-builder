@@ -43,7 +43,8 @@ and put the issue numbers in the pull request title.
   Development) for anything a user would notice, with the issue number. Use each heading once, in that
   order. When nothing visible changed, put `Changelog: none` on its own line in a commit message instead.
   The `changelog` CI job and the Stop hook check this. Never edit a released section.
-- Push with `git push -u origin <branch>` and open a pull request. Fill in every section of the template,
+- Push with `git push -u origin <branch>` and open a pull request against `main`, never against another
+  branch (a stacked pull request merges into the branch below it, not `main`). Fill in every section of the template,
   with `Closes #N` (one line per issue), or `Refs #N` for partial work, saying what's left.
 - Wait for CI to go green on the current head. If it fails, reproduce it with `bash scripts/check.sh`,
   fix it and push. After merging `main` into the branch, wait for CI again.

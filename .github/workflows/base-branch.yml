@@ -1,0 +1,23 @@
+name: Base branch
+
+# A pull request stacked on another branch merges into that branch, not main. GitHub retargets it
+# only if the lower branch is deleted on merge, which is how #2 landed on chore/bootstrap.
+# Separate from CI so that `edited` (which includes a retarget) re-runs only this job.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+  base-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: The pull request targets main
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$BASE_REF" != "main" ]; then
+            echo "::error::This pull request targets '$BASE_REF', not main. Retarget it to main (Edit, next to the title)."
+            exit 1
+          fi

@@ -85,9 +85,34 @@ S-13 sends both at once 100 times and checks exactly one succeeds; adding a sing
 the read and the write makes it fail, which is how I know the test can catch the bug. S-14 does
 the same for an edit against the start.
 
-These guarantees rely on one process with in-memory state. With a database, the same logic becomes
-a conditional `UPDATE … WHERE id = ? AND status = 'NOT_STARTED' AND version = ?` plus a table of
-idempotency keys with a unique constraint.
+These guarantees rely on one process with in-memory state.
+
+**With two service processes and a database.** The database does the check-and-set instead:
+
+- **Status changes** become one conditional update:
+  `UPDATE orders SET status = $next, version = version + 1 WHERE id = $id AND status = $expected`.
+  Cancel and the kitchen's start both expect `NOT_STARTED`. The row lock makes them run one after
+  the other, whichever process each came from. A request that updates no row re-reads the order
+  and answers as today: 409 when the other one won, 200 for a repeat cancel. An edit adds
+  `AND version = $ifMatch`.
+- **Every process runs the kitchen timer,** so two may try to advance the same order. The
+  conditional update turns the loser into a no-op; a single scheduler (or
+  `SELECT … FOR UPDATE SKIP LOCKED`) would stop the wasted attempts.
+- **The kitchen acts only after the start commits.** With a real kitchen system, the "start
+  cooking" message goes out through an outbox row written in the same transaction, so a cancel that
+  wins is never cooked.
+- **Idempotency keys** move to a table keyed by the same scope as today (`POST /orders <key>`,
+  `PUT /orders/<id> <key>`), holding the request's fingerprint, the stored response and
+  `expires_at`. The key row is inserted first, with `INSERT … ON CONFLICT DO NOTHING`, in the same
+  transaction as the order. Two retries of one request on different processes can't both create an
+  order: the second insert waits for the first transaction to commit, then replays its response,
+  or returns 422 for a different body.
+- **Keys expire after 24 hours.** A POST key is the only guard against a duplicate order, so it must
+  outlive every retry the builder can still send: its backoff, plus the customer pressing Send
+  again. The builder keeps the key in page state only, so a reload ends that window; 24 hours
+  leaves plenty of room. A PUT replayed after its key expires is still caught by `If-Match` (409).
+  Expired rows are deleted on a schedule using an index on `expires_at`, which also bounds the
+  table's size.
 
 ## Security
 

@@ -17,7 +17,11 @@ explains why each practice exists.
 2. **The work is planned** ("Planning the work" below) and the owner approves the plan.
 3. **A branch and a pull request** build it (`add-feature` skill): `feature/<name>`, `fix/<name>` or
    `chore/<name>`, never `main`. For each slice, write a test, make it pass, run
-   `bash scripts/check.sh`, then commit.
+   `bash scripts/check.sh`, then commit. Every pull request targets `main`. Don't stack one on
+   another branch: it merges into that branch, not `main` (the pricing engine did, in #2). When
+   work depends on an open pull request, wait for it to merge, then branch from the new `main`.
+   The `Base branch` workflow flags a pull request whose base isn't `main` with a failing check;
+   it can't block the merge, because the ruleset protects only `main`.
 4. **Review:** the `code-reviewer` subagent (or `/code-review`) on the diff, then a check in the
    running app.
 5. **CI passes** (`check`, `changelog`; the Security workflow reports too) and the owner merges.

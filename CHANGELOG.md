@@ -70,6 +70,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 
 ### Development
 
+- A `Base branch` workflow flags a pull request that doesn't target `main`, and `CONTRIBUTING.md`
+  says not to stack pull requests: #2 merged into `chore/bootstrap` instead of `main`.
 - Order statuses and their labels are defined once, in `@pizza/pricing`, and shared by the
   service and the builder (#32). The API reference moved from the README to `docs/API.md`.
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
