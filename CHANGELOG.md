@@ -52,6 +52,12 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
 - The promo code field's hint says "Enter a promo code" instead of showing a working code (#16).
+- When the kitchen starts an order while the customer is changing it, the builder closes the
+  editor and says so, instead of waiting for Save to be refused (#30).
+- When the service is down, the builder shows the "couldn't reach the restaurant" message
+  instead of "Unexpected end of JSON input".
+- A retry whose JSON lists the same fields in a different order now counts as the same request,
+  instead of being rejected as a reused `Idempotency-Key`.
 
 ### Security
 

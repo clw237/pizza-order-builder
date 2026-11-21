@@ -116,7 +116,7 @@ export function buildApp(options: AppOptions = {}) {
     const key = idempotencyKey(request);
     if (!key.ok) return send(reply, key.problem);
     const scope = `POST /orders ${key.value}`;
-    const fingerprint = JSON.stringify(request.body);
+    const fingerprint = canonicalJson(request.body);
     const replay = replayFor(scope, fingerprint);
     if (replay) return send(reply, replay);
 
@@ -140,7 +140,7 @@ export function buildApp(options: AppOptions = {}) {
     const key = idempotencyKey(request);
     if (!key.ok) return send(reply, key.problem);
     const scope = `PUT /orders/${request.params.id} ${key.value}`;
-    const fingerprint = JSON.stringify([
+    const fingerprint = canonicalJson([
       request.headers["if-match"],
       request.body,
     ]);
@@ -239,6 +239,22 @@ export function buildApp(options: AppOptions = {}) {
   }
 
   return app;
+}
+
+/**
+ * JSON with object keys sorted, so a retry that lists the same fields in a different order has the
+ * same fingerprint as the first request. Array order is kept: it is part of the order's meaning.
+ */
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, field: unknown) =>
+    field && typeof field === "object" && !Array.isArray(field)
+      ? Object.fromEntries(
+          Object.entries(field).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : field,
+  );
 }
 
 type Result<T> = { ok: true; value: T } | { ok: false; problem: Problem };

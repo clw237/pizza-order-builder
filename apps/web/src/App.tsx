@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   isSettled,
   latest,
+  editClosedReason,
   type Api,
   type ApiResult,
   type OrderView,
@@ -126,6 +127,15 @@ export function App({
   useEffect(() => {
     if (placedId) showInUrl(placedId);
   }, [placedId]);
+
+  // A poll can bring news that the kitchen started while the customer was editing. Close the
+  // editor then, instead of letting them find out only when Save is refused.
+  useEffect(() => {
+    const reason = editClosedReason(editing, placed);
+    if (!reason) return;
+    setEditing(false);
+    setMessage(reason);
+  }, [editing, placed]);
 
   function changeDraft(next: Draft) {
     setDraft(next);

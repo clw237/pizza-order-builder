@@ -138,6 +138,27 @@ describe("submitting an order", () => {
     expect(res.json().error).toBe("IDEMPOTENCY_KEY_REUSED");
   });
 
+  it("S-2 a retry whose JSON lists the same fields in another order is the same request", async () => {
+    const first = await submit(largeBacon, "reordered");
+    const { order, expectedTotalCents } = body(largeBacon);
+    const retry = await app.inject({
+      method: "POST",
+      url: "/orders",
+      headers: { "idempotency-key": "reordered" },
+      payload: {
+        expectedTotalCents,
+        order: {
+          tip: order.tip,
+          promoCodes: order.promoCodes,
+          lines: order.lines,
+        },
+      },
+    });
+    expect(retry.statusCode).toBe(201);
+    expect(retry.json()).toEqual(first.json());
+    expect((await listOrders()).json()).toHaveLength(1);
+  });
+
   it("S-4 a submission without an Idempotency-Key is rejected", async () => {
     const res = await app.inject({
       method: "POST",
