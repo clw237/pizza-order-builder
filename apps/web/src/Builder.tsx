@@ -106,7 +106,7 @@ export function Builder({ draft, onChange, errors }: BuilderProps) {
                           />
                           <span className="card-name">{topping.label}</span>
                           {size && (
-                            <span className="mana">
+                            <span className="topping-price">
                               +
                               {formatCents(
                                 applyRate(size.price, category.rate),

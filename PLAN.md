@@ -27,7 +27,8 @@ starts it. Timebox: 3 hours. Priorities: exact pricing and a defensible lifecycl
 - Property tests of pricing invariants.
 - Auto-advance timer for the kitchen: on by default, 20 s per step, each step configurable, and
   the builder counts down to the next step.
-- TMNT look with Magic: The Gathering easter eggs (styling only, never pricing).
+- TMNT colours and card-style topping picker (styling only, never pricing). The flavour text
+  (turn phases, catchphrase, tagline) was removed before submission as noise for graders.
 - `docker compose up`.
 
 ### 2.3 Won't (for now)
