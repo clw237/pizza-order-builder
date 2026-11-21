@@ -4,6 +4,14 @@ A pizza order builder (web UI) and a separate order service, built for the "Pizz
 Development" take-home (3-hour timebox). TypeScript end to end: one pricing package shared by the
 browser and the service, a Fastify service, and a Vite + React builder.
 
+Time spent: about 2 hours building the core, then further rounds of review, security fixes and
+docs.
+
+**Quick start:** `KITCHEN_TOKEN=dev-secret docker compose up --build`, then open
+http://localhost:5173. To see the guarantees in a minute, open http://localhost:5173/?flaky (a lost
+response is retried and still makes one order), or place an order and watch the kitchen timer move
+it along.
+
 ## Run it
 
 Prerequisite: Node.js 22.12 or later.
@@ -16,7 +24,7 @@ npm install
 | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
-| All checks: format, lint, types, 180 tests   | `bash scripts/check.sh`                                                    |
+| All checks: format, lint, types, all tests   | `bash scripts/check.sh`                                                    |
 | Tests only                                   | `npm test`                                                                 |
 | Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`)  |
 | Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
@@ -163,7 +171,7 @@ Where the brief left something open, this is what I decided. Each one is impleme
    total. "Tax on the total order" is read as the discounted food total, before tip.
 3. **Rounding:** money is integer cents. Discount, tax and a percentage tip are each rounded once,
    half to even (banker's rounding), at the order level (never per line). An exact half cent goes
-   to the even cent, so ties don't always round up. Example: tax on $5.00 is 32.5¢ → 32¢, and tax
+   to the even cent, so ties don't always round up (why: Design write-up, Money). Example: tax on $5.00 is 32.5¢ → 32¢, and tax
    on $7.00 is 45.5¢ → 46¢.
 4. **Tip percentage** is of the bill after discount and tax. The tip is not taxed.
 5. **SAVE5** needs a subtotal strictly over $20.00, measured before tax and before any discount.
@@ -193,120 +201,71 @@ Where the brief left something open, this is what I decided. Each one is impleme
 
 ## Design write-up
 
+Full reasoning and walk-throughs: [`docs/DESIGN.md`](docs/DESIGN.md).
+
 ### Money and the order total
 
-Money is an integer number of cents everywhere; percentages are basis points (8% = 800).
-`applyRate(amount, rate)` splits `amount × rate` into whole cents and a remainder out of 10000,
-and sends a remainder of exactly 5000 to the even cent: half-to-even rounding in integer
-arithmetic, so no floating-point value ever represents money. Tips arrive as text and are parsed
-straight into cents or basis points.
+Money is integer cents everywhere and rates are basis points, so no floating-point value ever
+represents money. `applyRate` rounds each discount, tax and percentage tip once, half to even, at
+order level. Half to even avoids the upward bias of half up, and ties are common at 6.5% tax ($5.00
+→ 32.5¢). The trade-off is that a hand check with half up can differ by 1¢. A store bound by a
+half-up tax rule changes one line, and tests P-1, P-3, PR-8 and T-6 pin the ties.
 
-All pricing lives in one pure function, `priceOrder(order, menu, promos)` in `packages/pricing`.
-**It runs in both places, and the service is the authority.** The builder calls it on every change
-to show the running total; the service calls the same function on every submit and update and
-stores its own result. The client never sends prices (the schema rejects unknown fields such as
-`total`). Instead it sends `expectedTotalCents`, the total it displayed, and the service rejects a
-mismatch with 409 and its own quote. Sharing one function gives an instant total with no network
-round trip on a flaky connection; the server check turns "what you see is what you're charged"
-into an enforced rule even if the two ever run different versions.
+All pricing is one pure function, `priceOrder`, in `packages/pricing`. **It runs in both places,
+and the service is the authority.** The builder calls it on every change for an instant total;
+the service recomputes it on every submit and update. Clients never send prices. They send
+`expectedTotalCents`, the total they showed, and a mismatch gets 409 with the service's quote, so
+"what you see is what you're charged" is enforced, not hoped for.
 
 ### Adding sizes, toppings, categories and promos
 
-The menu is data (`menu.ts`): sizes with a price, topping categories with a rate, and toppings that
-point to a category. Adding any of them is adding an entry; `priceOrder` looks prices up and never
-names a specific size or topping. Test E-1 prices a new size, category and topping without
-touching the engine.
-
-A promo is an entry in a registry (`promos.ts`): `{ code, conflictsWith, evaluate(context) }`.
-`evaluate` receives `{ subtotal, pizzaCount }` and returns either a discount or the reason it
-doesn't apply, so each promo carries its own conditions. Conflicts are declared on either side.
-The engine resolves them generically: evaluate every entered code, sort the eligible ones by
-discount (ties by registry order), and keep each one that doesn't conflict with one already kept.
-Test E-2 adds a "$8 off 3 or more pizzas" promo that conflicts with ILOVEPIZZA and is resolved by
-the same rule. Limits: the greedy pick is best for pairwise conflicts like these but not for every
-possible conflict graph, and a promo that needs information beyond the subtotal and pizza count
-(e.g. "free garlic on Tuesdays") needs one more field in the promo context.
+The menu is data (`menu.ts`), and the engine never names a specific size or topping, so adding one
+is adding an entry (test E-1). A promo is a registry entry (`promos.ts`) with its own
+`evaluate(context)` and a `conflictsWith` list. The engine resolves conflicts generically by
+keeping the largest eligible discounts that don't conflict (test E-2 adds a new conflicting promo).
+Limit: a promo that needs more than the subtotal and pizza count needs one more context field.
 
 ### Order lifecycle
 
-The statuses and allowed moves are a small pure state machine (`lifecycle.ts`). Every status
-change, from an HTTP request or the kitchen timer, goes through `OrderStore.transition()`, which
-reads the order, checks the move and saves the result in one synchronous step. Node runs one
-JavaScript task at a time and the handlers never `await` in that step, so no other request can
-slip in between the check and the write.
+Statuses are a small pure state machine (`lifecycle.ts`). Every change, from a request or the
+kitchen timer, goes through one synchronous read-check-write, so nothing can slip in between.
 
-**A customer retries a submission after a timeout.** The builder sends `POST /orders` with an
-`Idempotency-Key` generated when the customer pressed Send. The service creates the order and
-stores its response under that key, but the response is lost. The builder retries (timeouts,
-network errors and 5xx, with backoff) using the same key and body; the service finds the key and
-returns the stored response, with the same order id. If the customer gives up and presses Send
-again for the same order, the builder reuses the key too. The same key with a different body is
-rejected with 422. Updates work the same way, and also carry `If-Match: <version>`, so an edit
-based on a stale copy is rejected (409) rather than overwriting a newer one. Guarantee: one order
-per key, and one application per update key, for as long as the service runs.
+- **Retry after a timeout:** the builder sends an `Idempotency-Key` and reuses it on every retry.
+  The service replays the stored response, so there is one order per key. Updates also carry
+  `If-Match: <version>`, so a stale edit gets 409 instead of overwriting.
+- **Cancel at the moment the kitchen starts:** whichever runs first wins and the other gets 409, so
+  a cancelled order is never cooked. Test S-13 races them 100 times; adding one `await` makes it
+  fail.
 
-**The customer cancels at the moment the kitchen starts the order.** Both requests reach the same
-process and each runs its check-and-set without interruption. Whichever runs first wins. If the
-cancel wins, the kitchen's start gets 409 `ORDER_CANCELLED`; if the start wins, the cancel gets 409
-`ORDER_ALREADY_STARTED` with the current order, and the builder shows that the kitchen has started.
-There is never a cancelled order the kitchen is cooking or a started order that got cancelled. Test
-S-13 sends both at once 100 times and checks exactly one succeeds; adding a single `await` between
-the read and the write makes it fail, which is how I know the test can catch the bug. S-14 does
-the same for an edit against the start.
-
-These guarantees rely on one process with in-memory state. With a database, the same logic becomes
-a conditional `UPDATE … WHERE id = ? AND status = 'NOT_STARTED' AND version = ?` plus a table of
-idempotency keys with a unique constraint.
+With a database, the same logic becomes a conditional `UPDATE … WHERE status = ? AND version = ?`
+and a unique key table.
 
 ### Security
 
-- **Restaurant routes are protected** by a shared secret: `GET /orders` and
-  `POST /orders/:id/advance` need a `Kitchen-Token` header equal to the service's `KITCHEN_TOKEN`,
-  compared in constant time. If `KITCHEN_TOKEN` isn't set, those routes refuse every request rather
-  than open up. The kitchen timer runs inside the service and needs no token.
-- **Customer routes are open by design** (no accounts, per the brief). An order is reached by its
-  random UUID, which acts as the customer's capability to view, change or cancel it. The builder
-  shows the ID and a `?order=<id>` link so the customer can come back to it, so anyone the ID or
-  link is shared with has the same access. The builder only sends text shaped like a UUID.
-- **Cross-site requests are refused.** Every POST and PUT needs a header a plain HTML form or
-  `text/plain` fetch can't send (`Idempotency-Key` or `Kitchen-Token`), so another site's page
-  would need a CORS preflight, which the service never answers. POST and PUT whose `Origin` isn't
-  the builder's (`ALLOWED_ORIGINS`, default `http://localhost:5173` and `http://127.0.0.1:5173`)
-  get 403 before any handler runs.
-- **Input is bounded:** 16 KB bodies, at most 50 line items, quantities 1–99, strict schemas.
-- **Known limit: memory grows without bound.** Orders and idempotency keys stay in memory until the
-  service restarts, and nothing limits request rates, so a flood of submissions grows the process
-  until it is restarted. A database with a TTL on keys and a rate limit would fix it.
+Restaurant routes need a `Kitchen-Token` (compared in constant time; closed when unset). Customer
+routes are open by design, with no accounts per the brief: the order's random UUID is the
+customer's capability. POST and PUT need a custom header and a builder `Origin`, so another site
+can't cancel an order. Input is bounded. Known limit: memory and request rates are unbounded
+(issues #41 to #44 track the next hardening).
 
 ### What I cut or faked, and what I'd build next
 
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
   update above and a TTL on keys.
 - **The restaurant is simulated** by an endpoint, a CLI and a timer (on by default).
-- **Three browser tests.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
-  builder on their own ports, builds an order in Chromium, and places it; E2E-2
-  (`e2e/track-order.spec.ts`) tracks that order by its ID and link, and checks a stale link; E2E-3 toggles a topping card from the keyboard. CI runs them on every
-  change and, when it fails, uploads the trace and screenshot as the `playwright-traces` artifact. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
-  `api.ts`, `tracking.ts`), not by component tests.
+- **Only three browser tests** (E2E-1 to E2E-3); the rest of the UI is covered by unit tests of
+  its pure logic, not component tests.
 - **No production build.** Both `npm run web` and `docker compose up` run the Vite dev server;
   the service doesn't serve a built builder.
-- **The menu is compiled into both apps.** Changing it means redeploying both; a version skew is
-  caught by the `expectedTotalCents` check rather than prevented. Next: serve the menu from the
-  service.
-- **A replayed response is the original one,** so a retry after the order moved on shows the old
-  status until the next poll.
-- **Status updates are polled** every 3 seconds until the order is Delivered or Cancelled, plus
-  one fetch just after the timer's next step is due. The countdown compares the service's time
-  with the browser's clock, so across machines it is only as good as their clocks. Next:
-  push them with Server-Sent Events (`GET /orders/:id/events`) as soon as a status changes, and
-  keep polling as the fallback when the stream drops.
-- **Each topping at most once per pizza** (assumption 9). Next: double toppings, so a topping can
-  be added twice, shown with a ×2 badge and charged twice, which changes that assumption.
+- **The menu is compiled into both apps;** a version skew is caught by the `expectedTotalCents`
+  check rather than prevented. Next: serve the menu from the service.
+- **Status is polled** every 3 seconds. Next: push it with Server-Sent Events, polling as fallback.
+- **Each topping at most once per pizza** (assumption 9). Next: double toppings.
 - **Not built (per the brief):** customer accounts and login, payments, menu admin, multiple locations.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 180 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and every unit test. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**
@@ -324,50 +283,43 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |
 
 **Not covered, for lack of time:** UI component tests, and browser tests beyond the three smoke
-tests (E2E-1 to E2E-3). The builder's
-logic is unit tested (OB-1, RT-3, S-17); the screens themselves and PR-13, S-18 and K-1 were
+tests (E2E-1 to E2E-3). The builder's logic is unit tested (OB-1, RT-3, S-17); the screens themselves and PR-13, S-18 and K-1 were
 checked by hand; concurrency across several service processes
 (not possible with in-memory storage); behaviour across a service restart; load.
 
 **Requirement → code → tests**
 
-| Requirement             | Code                                                     | Tests            |
-| ----------------------- | -------------------------------------------------------- | ---------------- |
-| 1 Order builder         | `apps/web/src/draft.ts`, `Builder.tsx`                   | OB-1…OB-5        |
-| 2 Running total         | `packages/pricing/src/price.ts`, `apps/web/src/draft.ts` | P-_, INV-_, RT-* |
-| 3 Description           | `packages/pricing/src/describe.ts`                       | D-1…D-4          |
-| 4 Tip and promo codes   | `promos.ts`, `price.ts`, `validate.ts`                   | PR-_, T-_        |
-| 5 Service and lifecycle | `apps/service/src/*`                                     | S-*, K-2         |
-| Track an order by ID    | `apps/web/src/tracking.ts`, `App.tsx`                    | S-19, E2E-2      |
-| 6 Extensibility         | `menu.ts`, `promos.ts`                                   | E-1, E-2         |
+| Requirement             | Code                                                     | Tests                           |
+| ----------------------- | -------------------------------------------------------- | ------------------------------- |
+| 1 Order builder         | `apps/web/src/draft.ts`, `Builder.tsx`                   | OB-1…OB-5                       |
+| 2 Running total         | `packages/pricing/src/price.ts`, `apps/web/src/draft.ts` | P-1…P-8, INV-1…INV-6, RT-1…RT-3 |
+| 3 Description           | `packages/pricing/src/describe.ts`                       | D-1…D-4                         |
+| 4 Tip and promo codes   | `promos.ts`, `price.ts`, `validate.ts`                   | PR-1…PR-13, T-1…T-6             |
+| 5 Service and lifecycle | `apps/service/src/*`                                     | S-1…S-21, K-2                   |
+| Track an order by ID    | `apps/web/src/tracking.ts`, `App.tsx`                    | S-19, E2E-2                     |
+| 6 Extensibility         | `menu.ts`, `promos.ts`                                   | E-1, E-2                        |
 
 ## How I used AI
 
-I used Claude Code (in a cloud session, starting from my own `claude-starter` template, which
-carries the working rules, review subagents and CI). Claude drafted the plan, the acceptance
-criteria with exact expected cents, the code, the tests and the pull-request descriptions; I
-decided the requirements interpretation, the scope and the process, and merged each pull request
-myself.
+I used Claude Code, starting from my own `claude-starter` template (see "Repository tooling" under
+Layout). Claude drafted the plan, the acceptance criteria, the code, the tests and the pull
+requests; I decided the requirements interpretation, the scope and the process, and merged each
+pull request myself.
 
 - **Decisions I made:** the conflicting-codes rule (assumption 8: apply the code that saves more);
-  keeping the branch-and-pull-request process with CI on every change; rehearsing an AI-style
-  evaluation of the repo before submitting; and cutting the themed skin and joke toppings to stay
-  within the brief, which says to implement the menu as written.
+  keeping the branch-and-pull-request process with CI on every change; and keeping the theme to
+  styling, since the brief says to implement the menu as written.
 - **AI output that was rejected or fixed:** stacked pull requests merged into the wrong base
-  branch, so `main` was missing the pricing engine until a follow-up PR; the formatter rewrote
-  unrelated template documents and that change was reverted; a test for the builder assumed an
-  empty starting order and was corrected; a proposed TMNT topping list would have changed the
-  restaurant's menu, so it was moved out of scope.
-- **A cold-grader rehearsal found a real bug.** Before submitting, a fresh Claude subagent with
-  only the brief and the repo graded the work against the brief, with file and line evidence
-  (`docs/ACCEPTANCE.md`, "Mock AI evaluation"). It found that the builder dropped its
-  `Idempotency-Key` when the last automatic retry ended in a server error, so pressing Send again
-  sent a new key and could create a second order. The fix (PR #11) keeps the key until the
-  service gives a definite answer, with a unit test of that rule; the same pass also caught a hard-coded tax label.
-- **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
-  with a separate script before it became a test. After the switch to banker's rounding I broke the
-  rounding myself to see whether the tests notice: truncating fails 15 tests, and going back to
-  half-up fails 6. Adding one `await` inside a status change makes the cancel-versus-kitchen race
-  test fail.
-
-Built from my `claude-starter` template; see "Repository tooling" under Layout.
+  branch, so `main` was missing the pricing engine until a follow-up PR; a proposed TMNT topping
+  list would have changed the restaurant's menu, so it was rejected.
+- **A cold-grader rehearsal found a real bug:** the builder dropped its `Idempotency-Key` after a
+  failed last retry, so pressing Send again could create a second order. Fixed in PR #11 with a
+  unit test (`docs/ACCEPTANCE.md`, "Mock AI evaluation").
+- **Separate Claude sessions, each with one job:** a persona-based evaluation (only the repo and
+  the brief, judging as an evaluator for the role), a session that turned my feedback into
+  prioritized GitHub issues for the build sessions, and a penetration test that logged its
+  findings as prioritized `security` issues (#39 to #47).
+- **Verified rather than trusted:** every expected total was recomputed with a separate script
+  before it became a test, and I broke the rounding on purpose to see the tests fail (at
+  submission, truncating fails 15 and half-up fails 6). One added `await` makes the
+  cancel-versus-kitchen race test fail.
