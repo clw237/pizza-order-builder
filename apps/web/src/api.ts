@@ -12,6 +12,9 @@ export interface OrderView {
   quote: Quote;
   createdAt: string;
   updatedAt: string;
+  /** Set when the kitchen timer will move the order on; null for a manual step or a final status. */
+  nextStatus: OrderView["status"] | null;
+  nextStatusAt: string | null;
 }
 
 export interface ApiProblem {
@@ -24,6 +27,19 @@ export interface ApiProblem {
 export type ApiResult =
   | { ok: true; order: OrderView }
   | { ok: false; status: number; problem: ApiProblem };
+
+/**
+ * The copy of the order to show after a background fetch. A slow poll can arrive after a newer
+ * copy from the customer's own cancel or edit; keeping the newer one (by updatedAt, which every
+ * change moves forward) stops the screen, and the next If-Match, going back in time.
+ */
+export function latest(
+  current: OrderView | null,
+  incoming: OrderView,
+): OrderView {
+  if (!current || current.id !== incoming.id) return incoming;
+  return incoming.updatedAt < current.updatedAt ? current : incoming;
+}
 
 /**
  * True once the service has given a definite answer. A 5xx (after the last retry) is not one:

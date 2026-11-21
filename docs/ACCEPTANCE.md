@@ -155,29 +155,31 @@ Each percentage is rounded once, half to even, at order level.
 - Retried requests after a timeout never create duplicates or apply a change twice.
 - The restaurant advances status through a documented endpoint and CLI command.
 
-| ID   | Case                                                                       | Expected                                               |     |
-| ---- | -------------------------------------------------------------------------- | ------------------------------------------------------ | --- |
-| S-1  | POST valid order with Idempotency-Key                                      | 201, id, status Not Started, version 1, quote          | [A] |
-| S-2  | Retry POST, same key, same body                                            | Same response and id; still one order stored           | [A] |
-| S-3  | Same key, different body                                                   | 422; no new order                                      | [A] |
-| S-4  | POST without Idempotency-Key                                               | 400 explaining the header is required                  | [A] |
-| S-5  | GET unknown id                                                             | 404                                                    | [A] |
-| S-6  | PUT while Not Started, correct `If-Match` version                          | 200, version 2, repriced                               | [A] |
-| S-7  | PUT with stale version                                                     | 409 with current order                                 | [A] |
-| S-8  | Retried PUT, same Idempotency-Key                                          | Same response; change applied once                     | [A] |
-| S-9  | PUT or cancel after Started                                                | 409 "already started"                                  | [A] |
-| S-10 | Cancel while Not Started, then cancel again                                | Cancelled; second call 200, same state                 | [A] |
-| S-11 | Advance: Not Started → Started → Ready → Delivered                         | Each step succeeds in order                            | [A] |
-| S-12 | Advance from Delivered or Cancelled                                        | 409                                                    | [A] |
-| S-13 | Cancel and advance sent concurrently (repeated 100×)                       | Exactly one wins; final state is Cancelled xor Started | [A] |
-| S-14 | Update and advance sent concurrently                                       | Exactly one wins; no edit on a started order           | [A] |
-| S-15 | Invalid body (bad size, qty, tip, code)                                    | 400 with field messages; nothing stored                | [A] |
-| S-16 | Client sends price fields                                                  | Rejected by strict schema (400)                        | [A] |
-| S-17 | UI submit times out and retries                                            | One order created, same id shown                       | [A] |
-| S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                        | [M] |
-| K-1  | `KITCHEN_TOKEN=… npm run kitchen -- advance <id>`                          | Status moves one step                                  | [M] |
-| K-2  | `KITCHEN_AUTO_ADVANCE_SECONDS=N`                                           | Orders unchanged for N seconds move one step           | [A] |
-| K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset      | [A] |
+| ID   | Case                                                                       | Expected                                                                                        |     |
+| ---- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --- |
+| S-1  | POST valid order with Idempotency-Key                                      | 201, id, status Not Started, version 1, quote                                                   | [A] |
+| S-2  | Retry POST, same key, same body                                            | Same response and id; still one order stored                                                    | [A] |
+| S-3  | Same key, different body                                                   | 422; no new order                                                                               | [A] |
+| S-4  | POST without Idempotency-Key                                               | 400 explaining the header is required                                                           | [A] |
+| S-5  | GET unknown id                                                             | 404                                                                                             | [A] |
+| S-6  | PUT while Not Started, correct `If-Match` version                          | 200, version 2, repriced                                                                        | [A] |
+| S-7  | PUT with stale version                                                     | 409 with current order                                                                          | [A] |
+| S-8  | Retried PUT, same Idempotency-Key                                          | Same response; change applied once                                                              | [A] |
+| S-9  | PUT or cancel after Started                                                | 409 "already started"                                                                           | [A] |
+| S-10 | Cancel while Not Started, then cancel again                                | Cancelled; second call 200, same state                                                          | [A] |
+| S-11 | Advance: Not Started → Started → Ready → Delivered                         | Each step succeeds in order                                                                     | [A] |
+| S-12 | Advance from Delivered or Cancelled                                        | 409                                                                                             | [A] |
+| S-13 | Cancel and advance sent concurrently (repeated 100×)                       | Exactly one wins; final state is Cancelled xor Started                                          | [A] |
+| S-14 | Update and advance sent concurrently                                       | Exactly one wins; no edit on a started order                                                    | [A] |
+| S-15 | Invalid body (bad size, qty, tip, code)                                    | 400 with field messages; nothing stored                                                         | [A] |
+| S-16 | Client sends price fields                                                  | Rejected by strict schema (400)                                                                 | [A] |
+| S-17 | UI submit times out and retries                                            | One order created, same id shown                                                                | [A] |
+| S-18 | UI hides or disables Edit and Cancel unless Not Started; shows 409 clearly |                                                                                                 | [M] |
+| K-1  | `KITCHEN_TOKEN=… npm run kitchen -- advance <id>`                          | Status moves one step                                                                           | [M] |
+| K-2  | Timer on (default 20 s per step, or `KITCHEN_AUTO_ADVANCE_SECONDS=N`)      | Orders unchanged for N seconds move one step                                                    | [A] |
+| K-3  | `GET /orders` or advance with no, wrong or right `Kitchen-Token`           | 401, 401, 200; closed if `KITCHEN_TOKEN` is unset                                               | [A] |
+| K-4  | Per-step delays; `0` for a step; invalid values                            | Each status waits its own delay; 0 = CLI only; bad value stops startup with the variable's name | [A] |
+| K-5  | Order view and builder show the next step                                  | `nextStatus`/`nextStatusAt` set or null; "Started in about 12s"                                 | [A] |
 
 ## R6. Extensibility
 

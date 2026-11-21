@@ -1,10 +1,19 @@
 import { describeOrder, formatCents, validateOrder } from "@pizza/pricing";
 import { useEffect, useMemo, useState } from "react";
-import { isSettled, type Api, type ApiResult, type OrderView } from "./api";
+import {
+  isSettled,
+  latest,
+  type Api,
+  type ApiResult,
+  type OrderView,
+} from "./api";
 import { Breakdown, Builder } from "./Builder";
 import { emptyDraft, evaluate, fromOrderInput, type Draft } from "./draft";
+import { describeNextStep } from "./timing";
 
 const POLL_MS = 3000;
+// The service's timer checks once a second, so ask a little after the step is due.
+const DUE_GRACE_MS = 1200;
 const FINAL: OrderView["status"][] = ["DELIVERED", "CANCELLED"];
 
 interface Pending {
@@ -20,6 +29,7 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   const evaluation = useMemo(() => evaluate(draft), [draft]);
   const showBuilder = placed === null || editing;
@@ -29,13 +39,42 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
     const timer = setInterval(async () => {
       try {
         const result = await api.get(placed.id);
-        if (result.ok) setPlaced(result.order);
+        if (result.ok) setPlaced((current) => latest(current, result.order));
       } catch {
         // Polling is best effort; the next tick tries again.
       }
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [api, placed]);
+
+  // Ticks once a second only while the kitchen timer has a next step for this order, and
+  // fetches the order just after that step is due instead of waiting for the next poll.
+  const placedId = placed?.id ?? null;
+  const nextStatusAt = placed?.nextStatusAt ?? null;
+  useEffect(() => {
+    if (!placedId || !nextStatusAt) return;
+    setNow(new Date());
+    const tick = setInterval(() => setNow(new Date()), 1000);
+    const due =
+      Math.max(0, Date.parse(nextStatusAt) - Date.now()) + DUE_GRACE_MS;
+    let active = true;
+    const refresh = setTimeout(async () => {
+      try {
+        const result = await api.get(placedId);
+        if (active && result.ok) {
+          setPlaced((current) => latest(current, result.order));
+        }
+      } catch {
+        // Best effort, like polling: the next poll tries again.
+      }
+    }, due);
+    return () => {
+      active = false;
+      clearInterval(tick);
+      clearTimeout(refresh);
+    };
+  }, [api, placedId, nextStatusAt]);
+  const nextStep = placed ? describeNextStep(placed, now) : null;
 
   function changeDraft(next: Draft) {
     setDraft(next);
@@ -146,6 +185,7 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
               {placed.statusLabel}
             </strong>
           </p>
+          {nextStep && <p className="next-step">{nextStep}</p>}
           <pre>{placed.description}</pre>
           <p>Charged total: {formatCents(placed.quote.total)}</p>
           {placed.status === "NOT_STARTED" && !editing && (

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Smoke test for the running compose stack: docker compose up --build --wait, then run this.
+# Smoke test for the running compose stack. Start it with the kitchen timer off, since this
+# script moves the order itself:
+#   KITCHEN_AUTO_ADVANCE_SECONDS=0 docker compose up --build --wait --detach
 # Expects KITCHEN_TOKEN to be the value compose started the service with. CI and humans run it.
 set -euo pipefail
 

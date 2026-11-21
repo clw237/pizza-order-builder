@@ -9,7 +9,11 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       KITCHEN_TOKEN: ${KITCHEN_TOKEN:-}
-      KITCHEN_AUTO_ADVANCE_SECONDS: ${KITCHEN_AUTO_ADVANCE_SECONDS:-0}
+      # Empty means the service default: 20 seconds per step. 0 leaves a step to the kitchen CLI.
+      KITCHEN_AUTO_ADVANCE_SECONDS: ${KITCHEN_AUTO_ADVANCE_SECONDS:-}
+      KITCHEN_SECONDS_TO_START: ${KITCHEN_SECONDS_TO_START:-}
+      KITCHEN_SECONDS_TO_READY: ${KITCHEN_SECONDS_TO_READY:-}
+      KITCHEN_SECONDS_TO_DELIVER: ${KITCHEN_SECONDS_TO_DELIVER:-}
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:

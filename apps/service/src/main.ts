@@ -1,16 +1,19 @@
 import { buildApp } from "./app";
-import { startAutoAdvance } from "./kitchen";
+import { isManual, readSchedule, startAutoAdvance } from "./kitchen";
 import { OrderStore } from "./store";
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? "127.0.0.1";
-const autoAdvanceSeconds = Number(
-  process.env.KITCHEN_AUTO_ADVANCE_SECONDS ?? 0,
-);
+const scheduleResult = readSchedule(process.env);
+if (!scheduleResult.ok) {
+  console.error(scheduleResult.message);
+  process.exit(1);
+}
+const schedule = scheduleResult.schedule;
 const kitchenToken = process.env.KITCHEN_TOKEN || undefined;
 
 const store = new OrderStore();
-const app = buildApp({ store, logger: true, kitchenToken });
+const app = buildApp({ store, logger: true, kitchenToken, schedule });
 
 if (!kitchenToken) {
   app.log.warn(
@@ -18,11 +21,13 @@ if (!kitchenToken) {
   );
 }
 
-if (autoAdvanceSeconds > 0) {
-  const stop = startAutoAdvance(store, autoAdvanceSeconds);
+if (isManual(schedule)) {
+  app.log.info("Kitchen timer is off: orders move only with the kitchen CLI");
+} else {
+  const stop = startAutoAdvance(store, schedule);
   app.addHook("onClose", async () => stop());
   app.log.info(
-    `Kitchen auto-advance is on: every ${autoAdvanceSeconds}s per status`,
+    `Kitchen timer: start after ${schedule.NOT_STARTED}s, ready after ${schedule.STARTED}s, delivered after ${schedule.READY_FOR_PICKUP}s (0 = by hand)`,
   );
 }
 
