@@ -320,8 +320,9 @@ myself.
   sent a new key and could create a second order. The fix (PR #11) keeps the key until the
   service gives a definite answer, with a unit test of that rule; the same pass also caught a hard-coded tax label.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
-  with a separate script before it became a test, and the two most important tests were checked by
-  breaking the code on purpose: switching rounding to truncation fails 15 tests, and adding one
-  `await` inside a status change makes the cancel-versus-kitchen race test fail.
+  with a separate script before it became a test. After the switch to banker's rounding I broke the
+  rounding myself to see whether the tests notice: truncating fails 15 tests, and going back to
+  half-up fails 6. Adding one `await` inside a status change makes the cancel-versus-kitchen race
+  test fail.
 
 Built from the claude-starter template (see `docs/TEMPLATE.md`).
