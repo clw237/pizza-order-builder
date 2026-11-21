@@ -142,9 +142,6 @@ export function Builder({ draft, onChange, errors }: BuilderProps) {
       {errorFor("promoCodes").map((message) => (
         <p key={message} className="error">
           {message}
-          {message.startsWith("Unknown promo code") && (
-            <span className="flavor"> That spell fizzles.</span>
-          )}
         </p>
       ))}
       <h3>Tip</h3>
