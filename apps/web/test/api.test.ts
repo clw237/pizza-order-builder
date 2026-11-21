@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createApi,
+  editClosedReason,
   isSettled,
   latest,
   loseFirstResponse,
@@ -118,5 +119,71 @@ describe("S-20 cancel can't be sent as a cross-site simple request", () => {
       "cancel-key",
     );
     expect(calls[0]!.method).toBe("POST");
+  });
+});
+
+describe("a reply that isn't JSON, such as the dev proxy's 502 when the service is down", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives the customer the retry message, and the next Send reuses the key", async () => {
+    vi.useFakeTimers();
+    const fetchFn: FetchLike = async () => new Response("", { status: 502 });
+    const pending = createApi(fetchFn).submit(
+      { lines: [], promoCodes: [], tip: { mode: "dollars", value: "" } },
+      0,
+      "key-1",
+    );
+    await vi.runAllTimersAsync();
+    const result = await pending;
+    expect(result).toMatchObject({ ok: false, status: 502 });
+    expect(!result.ok && result.problem.message).toMatch(
+      /^Couldn't reach the restaurant .*trying again is safe/,
+    );
+    expect(isSettled(result)).toBe(false);
+  });
+
+  it.each(["null", "502", '"Bad Gateway"', "{}"])(
+    "treats JSON that isn't a problem (%s) like any unreadable reply",
+    async (text) => {
+      const fetchFn: FetchLike = async () =>
+        new Response(text, { status: 404 });
+      const result = await createApi(fetchFn).get("order-1");
+      expect(!result.ok && result.problem.error).toBe("UNEXPECTED_RESPONSE");
+    },
+  );
+
+  it("reports a 4xx without a JSON body by its status", async () => {
+    const fetchFn: FetchLike = async () =>
+      new Response("<html>Not Found</html>", { status: 404 });
+    const result = await createApi(fetchFn).get("order-1");
+    expect(result).toMatchObject({ ok: false, status: 404 });
+    expect(!result.ok && result.problem.message).toMatch(/HTTP 404/);
+  });
+});
+
+describe("#30 the kitchen starts the order while the customer is editing", () => {
+  const order = (status: OrderView["status"]) => ({ status }) as OrderView;
+
+  it("closes the editor once the kitchen has started the order", () => {
+    expect(editClosedReason(true, order("STARTED"))).toBe(
+      "The kitchen started your order, so it can't be changed now.",
+    );
+  });
+
+  it("says the order was cancelled when that is why the editor closed", () => {
+    expect(editClosedReason(true, order("CANCELLED"))).toBe(
+      "Your order was cancelled, so it can't be changed now.",
+    );
+  });
+
+  it("keeps the editor open while the order is still Not Started", () => {
+    expect(editClosedReason(true, order("NOT_STARTED"))).toBeNull();
+  });
+
+  it("does nothing when the customer isn't editing", () => {
+    expect(editClosedReason(false, order("STARTED"))).toBeNull();
+    expect(editClosedReason(false, null)).toBeNull();
   });
 });

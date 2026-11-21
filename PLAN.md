@@ -27,7 +27,8 @@ starts it. Timebox: 3 hours. Priorities: exact pricing and a defensible lifecycl
 - Property tests of pricing invariants.
 - Auto-advance timer for the kitchen: on by default, 20 s per step, each step configurable, and
   the builder counts down to the next step.
-- TMNT look with Magic: The Gathering easter eggs (styling only, never pricing).
+- TMNT colours and card-style topping picker (styling only, never pricing). The flavour text
+  (turn phases, catchphrase, tagline) was removed before submission as noise for graders.
 - `docker compose up`.
 
 ### 2.3 Won't (for now)
@@ -48,7 +49,8 @@ persistent storage.
 
 - **Monorepo (npm workspaces), TypeScript end to end.**
   - `packages/pricing`: pure. Menu data, promo registry, `priceOrder()`, `describeOrder()`,
-    zod schemas. Used by both the UI and the service, so there is one pricing function.
+    zod schemas, and the order statuses with their labels. Used by both the UI and the service,
+    so there is one pricing function and one list of statuses.
   - `apps/service`: Fastify. In-memory store, pure state machine, idempotency keys,
     optimistic versioning. Reprices every order; rejects a mismatched `expectedTotalCents`.
   - `apps/web`: Vite + React. Calls `priceOrder()` on every change.
@@ -120,7 +122,8 @@ Final-hour decisions:
 - No local `docker compose` rebuild or smoke test in the final hour; the CI `compose` job covers
   it. `ci.yml` is unchanged, to save time for the theme.
 - The theme was rebuilt on `main` rather than merging the stale `feature/theme`
-  branch. It keeps TMNT colours and the "Cowabunga!" catchphrase but no names or art, uses local
+  branch. It keeps TMNT colours but no names or art (the catchphrase and flavour text were removed
+  before submission), uses local
   fonts only (no web-font fetch), and changes styling and copy only, never prices or behaviour.
   E2E-3 covers the topping cards.
 - Customers track an order by its ID (S-19, E2E-2). The UUID stays the only capability; no

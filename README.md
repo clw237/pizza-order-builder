@@ -85,11 +85,20 @@ restaurant routes and the CLI refuse every request until you run `up` again with
 | `apps/service`       | Order service: HTTP API, order state machine, in-memory store, kitchen timer and CLI        |
 | `apps/web`           | Order builder UI                                                                            |
 | `docs/ACCEPTANCE.md` | Acceptance criteria and test cases with IDs; most test names start with these IDs           |
+| `docs/API.md`        | The order service's endpoints, examples and error codes                                     |
 | `PLAN.md`            | Plan and build order                                                                        |
 
 **Repository tooling, not part of the exercise.** These come from my `claude-starter` template and
 are how the AI's work was kept in check: they set its working rules and fail a change that breaks
 them. None of it is needed to run or review the exercise.
+
+If you open the repo in Claude Code and trust the folder, two project hooks run on your machine
+(`.claude/settings.json`). After Claude edits a file, `.claude/hooks/format.sh` formats it with
+the repo's Prettier, if it is installed. When Claude stops with changes but no changelog line,
+`scripts/check_changelog.py --hook` asks it to continue once to add one. Neither touches the
+network or can fail the session. Your Claude session will also load `CLAUDE.md` and `.claude/` as
+instructions: they are the working rules I used while building, not instructions for reviewing
+the work.
 
 | Path                                                                  | What                                                                                                                    |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -102,63 +111,10 @@ them. None of it is needed to run or review the exercise.
 
 ## Order service API
 
-All bodies are JSON. Money is integer cents. Errors are `{ "error": CODE, "message": "...", ... }`.
-
-| Method and path            | Purpose                 | Notes                                                                            |
-| -------------------------- | ----------------------- | -------------------------------------------------------------------------------- |
-| `POST /orders`             | Submit an order         | Requires `Idempotency-Key`. 201 with the order                                   |
-| `GET /orders/:id`          | Order and its status    | 404 if unknown                                                                   |
-| `GET /orders`              | Restaurant: all orders  | Requires `Kitchen-Token`; 401 if missing or wrong. Used by the kitchen CLI       |
-| `PUT /orders/:id`          | Replace the order       | Requires `Idempotency-Key` and `If-Match: <version>`. Only while Not Started     |
-| `POST /orders/:id/cancel`  | Cancel                  | Requires `Idempotency-Key`. Only while Not Started. Cancelling again returns 200 |
-| `POST /orders/:id/advance` | Restaurant: next status | Requires `Kitchen-Token`. Not Started → Started → Ready for Pickup → Delivered   |
-| `GET /health`              | Liveness                |                                                                                  |
-
-Submit (`expectedTotalCents` is the total the customer was shown):
-
-```bash
-curl -s -X POST localhost:3000/orders \
-  -H "content-type: application/json" -H "idempotency-key: 7f9c-demo" \
-  -d '{"order":{"lines":[{"sizeId":"medium","quantity":2,"toppingIds":["pepperoni","bacon"]}],"promoCodes":["ILOVEPIZZA"],"tip":{"mode":"percent","value":"20"}},"expectedTotalCents":1915}'
-```
-
-Response (shortened):
-
-```json
-{
-  "id": "0b6c…",
-  "status": "NOT_STARTED",
-  "statusLabel": "Not Started",
-  "version": 1,
-  "description": "2 × Medium pizza with pepperoni, bacon",
-  "order": { "lines": [ … ], "promoCodes": ["ILOVEPIZZA"], "tip": { "mode": "percent", "value": "20" } },
-  "quote": { "subtotal": 1666, "appliedPromos": ["ILOVEPIZZA"], "promoNotices": [], "discount": 167, "tax": 97, "tip": 319, "total": 1915, "lines": [ … ] },
-  "nextStatus": "STARTED",
-  "nextStatusAt": "2026-11-21T00:20:20.000Z"
-}
-```
-
-`nextStatus` and `nextStatusAt` say when the kitchen timer will move the order on; both are `null`
-when that step is left to the kitchen or the order is Delivered or Cancelled.
-
-Update and cancel:
-
-```bash
-curl -s -X PUT localhost:3000/orders/<id> \
-  -H "content-type: application/json" -H "idempotency-key: 2a41-demo" -H "if-match: 1" \
-  -d '{"order":{"lines":[{"sizeId":"large","quantity":1,"toppingIds":[]}],"promoCodes":[],"tip":{"mode":"dollars","value":""}},"expectedTotalCents":1278}'
-curl -s -X POST localhost:3000/orders/<id>/cancel -H "idempotency-key: 5c2e-demo"
-```
-
-| Status                                                            | When                                                                                    |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 400 `INVALID_ORDER`, `INVALID_REQUEST`, `MISSING_IDEMPOTENCY_KEY` | Bad input; `errors[]` lists field paths and messages                                    |
-| 404 `ORDER_NOT_FOUND`                                             | Unknown id                                                                              |
-| 409 `PRICE_MISMATCH`                                              | The service's total differs from `expectedTotalCents`; the body has the service's quote |
-| 409 `ORDER_ALREADY_STARTED`, `ORDER_CANCELLED`, `ORDER_COMPLETE`  | Transition not allowed; the body has the current order                                  |
-| 409 `VERSION_CONFLICT`                                            | `If-Match` is stale; the body has the current order                                     |
-| 422 `IDEMPOTENCY_KEY_REUSED`                                      | Same key, different request                                                             |
-| 428 `PRECONDITION_REQUIRED`                                       | `PUT` without `If-Match`                                                                |
+Seven JSON endpoints: submit, get, update and cancel an order, plus the restaurant's list and
+advance routes and a health check. Money is integer cents. Submit, update and cancel need an
+`Idempotency-Key`, and an update needs `If-Match: <version>`. Endpoints, curl examples and every
+error code: [`docs/API.md`](docs/API.md).
 
 ## Assumptions
 
@@ -245,8 +201,10 @@ and a unique key table.
 Restaurant routes need a `Kitchen-Token` (compared in constant time; closed when unset). Customer
 routes are open by design, with no accounts per the brief: the order's random UUID is the
 customer's capability. POST and PUT need a custom header and a builder `Origin`, so another site
-can't cancel an order. Input is bounded. Known limit: memory and request rates are unbounded
-(issues #41 to #44 track the next hardening).
+can't cancel an order. Input is bounded. Known limit: memory and request rates are unbounded.
+Production hardening (rate limits and memory bounds, security headers, a production build:
+issues #41 to #44) and hardening this repo's own Claude workflow (#40) are outside the brief, so
+they are logged as backlog rather than done.
 
 ### What I cut or faked, and what I'd build next
 
@@ -287,17 +245,7 @@ tests (E2E-1 to E2E-3). The builder's logic is unit tested (OB-1, RT-3, S-17); t
 checked by hand; concurrency across several service processes
 (not possible with in-memory storage); behaviour across a service restart; load.
 
-**Requirement → code → tests**
-
-| Requirement             | Code                                                     | Tests                           |
-| ----------------------- | -------------------------------------------------------- | ------------------------------- |
-| 1 Order builder         | `apps/web/src/draft.ts`, `Builder.tsx`                   | OB-1…OB-5                       |
-| 2 Running total         | `packages/pricing/src/price.ts`, `apps/web/src/draft.ts` | P-1…P-8, INV-1…INV-6, RT-1…RT-3 |
-| 3 Description           | `packages/pricing/src/describe.ts`                       | D-1…D-4                         |
-| 4 Tip and promo codes   | `promos.ts`, `price.ts`, `validate.ts`                   | PR-1…PR-13, T-1…T-6             |
-| 5 Service and lifecycle | `apps/service/src/*`                                     | S-1…S-21, K-2                   |
-| Track an order by ID    | `apps/web/src/tracking.ts`, `App.tsx`                    | S-19, E2E-2                     |
-| 6 Extensibility         | `menu.ts`, `promos.ts`                                   | E-1, E-2                        |
+Each requirement's code and tests are mapped in [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md#requirement--code--tests).
 
 ## How I used AI
 

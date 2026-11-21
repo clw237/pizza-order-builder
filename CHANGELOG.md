@@ -43,8 +43,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - Discount, tax and percentage tips round half to even (banker's rounding) instead of half-up,
   so a small plain pizza now costs $5.32 (tax 32.5¢ → 32¢).
 - The web app has a TMNT look with card-game touches: a sewer-brick background, comic panels,
-  bandana colours per pizza, toppings as cards that tilt when picked, and flavour text next to
-  the order status. Styling only; prices, labels and behaviour are unchanged.
+  bandana colours per pizza, and toppings as cards that tilt when picked. Styling only; prices,
+  labels and behaviour are unchanged. Copy stays plain ("Order sent.").
 
 ### Fixed
 
@@ -52,6 +52,12 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
 - The promo code field's hint says "Enter a promo code" instead of showing a working code (#16).
+- When the kitchen starts an order while the customer is changing it, the builder closes the
+  editor and says so, instead of waiting for Save to be refused (#30).
+- When the service is down, the builder shows the "couldn't reach the restaurant" message
+  instead of "Unexpected end of JSON input".
+- A retry whose JSON lists the same fields in a different order now counts as the same request,
+  instead of being rejected as a reused `Idempotency-Key`.
 
 ### Security
 
@@ -64,6 +70,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 
 ### Development
 
+- Order statuses and their labels are defined once, in `@pizza/pricing`, and shared by the
+  service and the builder (#32). The API reference moved from the README to `docs/API.md`.
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
   order and places it. E2E-2 tracks a placed order by its ID after a reload. `npm run e2e`; CI installs Chromium and runs it.
 - When the browser test fails in CI, its trace, screenshot and HTML report are uploaded as the

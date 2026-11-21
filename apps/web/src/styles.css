@@ -45,7 +45,6 @@ h1 {
   text-shadow: 3px 3px 0 var(--ink);
 }
 
-.tagline,
 header .notice {
   color: var(--paper);
   margin-top: 0;
@@ -142,7 +141,7 @@ header .notice {
   font-weight: bold;
 }
 
-.mana {
+.topping-price {
   align-self: flex-end;
   background: var(--ink);
   border-radius: 999px;
@@ -164,11 +163,6 @@ header .notice {
   margin: 0;
   opacity: 0;
   position: absolute;
-}
-
-.flavor {
-  color: #555;
-  font-style: italic;
 }
 
 .breakdown {
