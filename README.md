@@ -16,7 +16,7 @@ npm install
 | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Order service (port 3000)                    | `KITCHEN_TOKEN=dev-secret npm run service`                                 |
 | Order builder (port 5173, needs the service) | `npm run web`, then open http://localhost:5173                             |
-| All checks: format, lint, types, 161 tests   | `bash scripts/check.sh`                                                    |
+| All checks: format, lint, types, 180 tests   | `bash scripts/check.sh`                                                    |
 | Tests only                                   | `npm test`                                                                 |
 | Browser smoke test (starts both apps itself) | `npm run e2e` (first time: `npx playwright install --with-deps chromium`)  |
 | Restaurant side: list orders / advance one   | `KITCHEN_TOKEN=dev-secret npm run kitchen -- list` and `… -- advance <id>` |
@@ -59,6 +59,10 @@ restaurant routes and the CLI refuse every request until you run `up` again with
   `KITCHEN_SECONDS_TO_DELIVER`; `KITCHEN_AUTO_ADVANCE_SECONDS` sets all three. `0` leaves a step
   to the kitchen CLI, so `KITCHEN_AUTO_ADVANCE_SECONDS=0` turns the timer off. An invalid value
   stops the service with a message saying which variable is wrong.
+- **Track an order:** after sending, copy the order ID (or keep the link shown with it). Later,
+  paste the ID or link into "Track an order" on the start screen, or open
+  http://localhost:5173/?order=<id>, to see its status and change or cancel it while Not Started.
+  The page's URL names the order on screen, so a reload keeps it.
 - **Flaky-network demo:** open http://localhost:5173/?flaky. The first response is thrown away after
   the service has handled it, the builder retries with the same `Idempotency-Key`, and you still get
   exactly one order.
@@ -247,7 +251,9 @@ idempotency keys with a unique constraint.
   compared in constant time. If `KITCHEN_TOKEN` isn't set, those routes refuse every request rather
   than open up. The kitchen timer runs inside the service and needs no token.
 - **Customer routes are open by design** (no accounts, per the brief). An order is reached by its
-  random UUID, which acts as the customer's capability to view, change or cancel it.
+  random UUID, which acts as the customer's capability to view, change or cancel it. The builder
+  shows the ID and a `?order=<id>` link so the customer can come back to it, so anyone the ID or
+  link is shared with has the same access. The builder only sends text shaped like a UUID.
 - **Input is bounded:** 16 KB bodies, at most 50 line items, quantities 1–99, strict schemas.
 - **Known limit: memory grows without bound.** Orders and idempotency keys stay in memory until the
   service restarts, and nothing limits request rates, so a flood of submissions grows the process
@@ -258,10 +264,11 @@ idempotency keys with a unique constraint.
 - **Storage is in memory** and idempotency keys never expire. Next: SQLite with the conditional
   update above and a TTL on keys.
 - **The restaurant is simulated** by an endpoint, a CLI and a timer (on by default).
-- **One browser test.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
-  builder on their own ports, builds an order in Chromium, and places it; CI runs it on every
+- **Two browser tests.** E2E-1 (`e2e/place-order.spec.ts`, Playwright) starts the service and the
+  builder on their own ports, builds an order in Chromium, and places it; E2E-2
+  (`e2e/track-order.spec.ts`) tracks that order by its ID and link, and checks a stale link. CI runs them on every
   change and, when it fails, uploads the trace and screenshot as the `playwright-traces` artifact. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
-  `api.ts`), not by component tests.
+  `api.ts`, `tracking.ts`), not by component tests.
 - **No production build.** Both `npm run web` and `docker compose up` run the Vite dev server;
   the service doesn't serve a built builder.
 - **The menu is compiled into both apps.** Changing it means redeploying both; a version skew is
@@ -281,7 +288,7 @@ idempotency keys with a unique constraint.
 
 ## Tests
 
-`bash scripts/check.sh` runs formatting, lint, type checking and 161 tests. Most test names start
+`bash scripts/check.sh` runs formatting, lint, type checking and 180 tests. Most test names start
 with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -t "S-13"` runs one.
 
 **Invariants I chose to test, and why**
@@ -298,8 +305,8 @@ with the ID of the case they cover in `docs/ACCEPTANCE.md`, so `npx vitest run -
 | Bad input gets a clear message, and clients can't send prices                                                                                                                          | Server-side validation                                                                      | OB-2…OB-5, T-5, PR-10, S-15, S-16                       |
 | New menu entries and promos need no engine change                                                                                                                                      | Requirement 6                                                                               | E-1, E-2                                                |
 
-**Not covered, for lack of time:** UI component tests, and browser tests beyond the one smoke
-test (E2E-1). The builder's
+**Not covered, for lack of time:** UI component tests, and browser tests beyond the two smoke
+tests (E2E-1, E2E-2). The builder's
 logic is unit tested (OB-1, RT-3, S-17); the screens themselves and PR-13, S-18 and K-1 were
 checked by hand; concurrency across several service processes
 (not possible with in-memory storage); behaviour across a service restart; load.
@@ -313,6 +320,7 @@ checked by hand; concurrency across several service processes
 | 3 Description           | `packages/pricing/src/describe.ts`                       | D-1…D-4          |
 | 4 Tip and promo codes   | `promos.ts`, `price.ts`, `validate.ts`                   | PR-_, T-_        |
 | 5 Service and lifecycle | `apps/service/src/*`                                     | S-*, K-2         |
+| Track an order by ID    | `apps/web/src/tracking.ts`, `App.tsx`                    | S-19, E2E-2      |
 | 6 Extensibility         | `menu.ts`, `promos.ts`                                   | E-1, E-2         |
 
 ## How I used AI

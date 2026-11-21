@@ -1,5 +1,5 @@
 import { describeOrder, formatCents, validateOrder } from "@pizza/pricing";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   isSettled,
   latest,
@@ -10,6 +10,7 @@ import {
 import { Breakdown, Builder } from "./Builder";
 import { emptyDraft, evaluate, fromOrderInput, type Draft } from "./draft";
 import { describeNextStep } from "./timing";
+import { parseOrderId, trackingUrl, withOrderId } from "./tracking";
 
 const POLL_MS = 3000;
 // The service's timer checks once a second, so ask a little after the step is due.
@@ -21,7 +22,23 @@ interface Pending {
   key: string;
 }
 
-export function App({ api, flaky }: { api: Api; flaky: boolean }) {
+function showInUrl(id: string | null) {
+  const { pathname, search, hash } = window.location;
+  const next = withOrderId(search, id);
+  if (next !== search) {
+    window.history.replaceState(null, "", `${pathname}${next}${hash}`);
+  }
+}
+
+export function App({
+  api,
+  flaky,
+  initialOrderId,
+}: {
+  api: Api;
+  flaky: boolean;
+  initialOrderId: string | null;
+}) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [placed, setPlaced] = useState<OrderView | null>(null);
   const [editing, setEditing] = useState(false);
@@ -30,9 +47,30 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
   const [description, setDescription] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [trackText, setTrackText] = useState("");
 
   const evaluation = useMemo(() => evaluate(draft), [draft]);
   const showBuilder = placed === null || editing;
+
+  // Opening a saved tracking link (?order=<id>) shows that order straight away.
+  useEffect(() => {
+    if (!initialOrderId) return;
+    let active = true;
+    api
+      .get(initialOrderId)
+      .then((result) => {
+        if (!active) return;
+        showTracked(result);
+        if (!result.ok) showInUrl(null);
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setMessage(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, initialOrderId]);
 
   useEffect(() => {
     if (!placed || FINAL.includes(placed.status)) return;
@@ -75,6 +113,10 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
     };
   }, [api, placedId, nextStatusAt]);
   const nextStep = placed ? describeNextStep(placed, now) : null;
+
+  useEffect(() => {
+    if (placedId) showInUrl(placedId);
+  }, [placedId]);
 
   function changeDraft(next: Draft) {
     setDraft(next);
@@ -145,6 +187,40 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
     }
   }
 
+  function showTracked(result: ApiResult) {
+    if (result.ok) {
+      // A slow load mustn't replace an order the customer sent in the meantime.
+      setPlaced((current) => current ?? result.order);
+      setEditing(false);
+      setMessage(null);
+      return;
+    }
+    setMessage(
+      result.status === 404 ? "No order with that ID." : result.problem.message,
+    );
+  }
+
+  async function track(event: FormEvent) {
+    event.preventDefault();
+    const parsed = parseOrderId(trackText);
+    if (!parsed.ok) {
+      setMessage(parsed.message);
+      return;
+    }
+    const result = await run(() => api.get(parsed.id));
+    if (result) showTracked(result);
+  }
+
+  async function copyId() {
+    if (!placed) return;
+    try {
+      await navigator.clipboard.writeText(placed.id);
+      setMessage("Order ID copied.");
+    } catch {
+      setMessage("Couldn't copy. Select the order ID and copy it yourself.");
+    }
+  }
+
   function edit() {
     if (!placed) return;
     setDraft(fromOrderInput(placed.order));
@@ -153,6 +229,8 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
   }
 
   function startOver() {
+    showInUrl(null);
+    setTrackText("");
     setPlaced(null);
     setEditing(false);
     setDraft(emptyDraft());
@@ -183,7 +261,17 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
             Order <code>{placed.id}</code>:{" "}
             <strong className={`status status-${placed.status}`}>
               {placed.statusLabel}
-            </strong>
+            </strong>{" "}
+            <button type="button" onClick={copyId}>
+              Copy ID
+            </button>
+          </p>
+          <p className="tracking">
+            Save this ID to track your order, or keep{" "}
+            <a href={trackingUrl(window.location.origin, placed.id)}>
+              this link to it
+            </a>
+            .
           </p>
           {nextStep && <p className="next-step">{nextStep}</p>}
           <pre>{placed.description}</pre>
@@ -209,6 +297,23 @@ export function App({ api, flaky }: { api: Api; flaky: boolean }) {
             </button>
           )}
         </section>
+      )}
+
+      {placed === null && (
+        <form className="track" onSubmit={track}>
+          <h2>Track an order</h2>
+          <label>
+            Order ID{" "}
+            <input
+              value={trackText}
+              onChange={(event) => setTrackText(event.target.value)}
+              placeholder="Paste your order ID or link"
+            />
+          </label>{" "}
+          <button type="submit" disabled={busy}>
+            Track
+          </button>
+        </form>
       )}
 
       {showBuilder && (
