@@ -1,13 +1,6 @@
-export type OrderStatus =
-  "NOT_STARTED" | "STARTED" | "READY_FOR_PICKUP" | "DELIVERED" | "CANCELLED";
+import { STATUS_LABELS, type OrderStatus } from "@pizza/pricing";
 
-export const STATUS_LABELS: Record<OrderStatus, string> = {
-  NOT_STARTED: "Not Started",
-  STARTED: "Started",
-  READY_FOR_PICKUP: "Ready for Pickup",
-  DELIVERED: "Delivered",
-  CANCELLED: "Cancelled",
-};
+export type { OrderStatus };
 
 export type TransitionError =
   "ORDER_ALREADY_STARTED" | "ORDER_CANCELLED" | "ORDER_COMPLETE";

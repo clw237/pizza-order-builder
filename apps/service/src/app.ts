@@ -7,10 +7,10 @@ import {
   type FieldError,
   type OrderInput,
   type Quote,
+  STATUS_LABELS,
 } from "@pizza/pricing";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import {
-  STATUS_LABELS,
   advance,
   canEdit,
   cancel,

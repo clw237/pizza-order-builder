@@ -1,12 +1,5 @@
+import { STATUS_LABELS } from "@pizza/pricing";
 import type { OrderView } from "./api";
-
-const LABELS: Record<OrderView["status"], string> = {
-  NOT_STARTED: "Not Started",
-  STARTED: "Started",
-  READY_FOR_PICKUP: "Ready for Pickup",
-  DELIVERED: "Delivered",
-  CANCELLED: "Cancelled",
-};
 
 /**
  * "Started in about 12s" from the service's next-step time, or null when the next step is up to
@@ -17,7 +10,7 @@ export function describeNextStep(
   now: Date,
 ): string | null {
   if (!order.nextStatus || !order.nextStatusAt) return null;
-  const label = LABELS[order.nextStatus];
+  const label = STATUS_LABELS[order.nextStatus];
   const seconds = Math.ceil(
     (Date.parse(order.nextStatusAt) - now.getTime()) / 1000,
   );

@@ -48,7 +48,8 @@ persistent storage.
 
 - **Monorepo (npm workspaces), TypeScript end to end.**
   - `packages/pricing`: pure. Menu data, promo registry, `priceOrder()`, `describeOrder()`,
-    zod schemas. Used by both the UI and the service, so there is one pricing function.
+    zod schemas, and the order statuses with their labels. Used by both the UI and the service,
+    so there is one pricing function and one list of statuses.
   - `apps/service`: Fastify. In-memory store, pure state machine, idempotency keys,
     optimistic versioning. Reprices every order; rejects a mismatched `expectedTotalCents`.
   - `apps/web`: Vite + React. Calls `priceOrder()` on every change.

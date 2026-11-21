@@ -4,6 +4,8 @@
  *   KITCHEN_TOKEN=<token> npm run kitchen -- list
  *   KITCHEN_TOKEN=<token> npm run kitchen -- advance <order id>
  */
+import { formatCents } from "@pizza/pricing";
+
 const serviceUrl = process.env.SERVICE_URL ?? "http://127.0.0.1:3000";
 const kitchenToken = process.env.KITCHEN_TOKEN;
 
@@ -32,7 +34,7 @@ async function main(args: string[]): Promise<number> {
     if (orders.length === 0) console.log("No orders yet.");
     for (const o of orders) {
       console.log(
-        `${o.id}  ${o.statusLabel.padEnd(16)}  $${(o.quote.total / 100).toFixed(2)}  ${o.description.replaceAll("\n", "; ")}`,
+        `${o.id}  ${o.statusLabel.padEnd(16)}  ${formatCents(o.quote.total)}  ${o.description.replaceAll("\n", "; ")}`,
       );
     }
     return 0;

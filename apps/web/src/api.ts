@@ -1,10 +1,9 @@
-import type { OrderInput, Quote } from "@pizza/pricing";
+import type { OrderInput, OrderStatus, Quote } from "@pizza/pricing";
 
 /** The order as the service returns it. */
 export interface OrderView {
   id: string;
-  status:
-    "NOT_STARTED" | "STARTED" | "READY_FOR_PICKUP" | "DELIVERED" | "CANCELLED";
+  status: OrderStatus;
   statusLabel: string;
   version: number;
   description: string;
