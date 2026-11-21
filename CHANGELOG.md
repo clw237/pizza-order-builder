@@ -53,3 +53,5 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
   order and places it. `npm run e2e`; CI installs Chromium and runs it.
+- When the browser test fails in CI, its trace, screenshot and HTML report are uploaded as the
+  `playwright-traces` artifact (kept 7 days).

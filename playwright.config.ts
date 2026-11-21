@@ -7,10 +7,13 @@ const webPort = 5174;
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${webPort}`,
-    trace: "off",
+    // In CI a failing test keeps its trace and screenshot, which the workflow uploads. Locally
+    // nothing is recorded; rerun with --trace on to debug.
+    trace: process.env.CI ? "retain-on-failure" : "off",
+    screenshot: process.env.CI ? "only-on-failure" : "off",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
