@@ -157,8 +157,11 @@ export function createApi(fetchFn: FetchLike, base = "/api") {
       }),
     get: (id: string) =>
       call(`/orders/${encodeURIComponent(id)}`, { method: "GET" }),
-    cancel: (id: string) =>
-      call(`/orders/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+    cancel: (id: string, idempotencyKey: string) =>
+      call(`/orders/${encodeURIComponent(id)}/cancel`, {
+        method: "POST",
+        headers: { "idempotency-key": idempotencyKey },
+      }),
   };
 }
 
