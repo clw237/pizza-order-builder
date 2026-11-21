@@ -38,6 +38,28 @@ jobs:
       - name: End-to-end smoke test
         run: npm run e2e
 
+  compose:
+    # Builds the image, starts the stack the README documents and runs the smoke script against it.
+    runs-on: ubuntu-latest
+    env:
+      KITCHEN_TOKEN: ci-only-placeholder
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 180
+
+      - name: Smoke test
+        run: bash scripts/compose-smoke.sh
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down
+
   changelog:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest

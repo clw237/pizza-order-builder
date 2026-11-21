@@ -24,6 +24,20 @@ npm install
 Run the service and the builder in two terminals. They are separate processes; the builder's dev
 server forwards `/api/*` to the service over HTTP.
 
+**Or with Docker** (no local Node needed):
+
+```bash
+KITCHEN_TOKEN=dev-secret docker compose up --build
+# open http://localhost:5173; in another terminal:
+docker compose exec service npm run kitchen -- list
+KITCHEN_TOKEN=dev-secret bash scripts/compose-smoke.sh   # optional check of the running stack
+```
+
+The same image runs both apps as separate containers; the builder's container forwards `/api/*`
+to the `service` container. Ports are published on `127.0.0.1` only. `KITCHEN_TOKEN` and
+`KITCHEN_AUTO_ADVANCE_SECONDS` are read from your shell or a `.env` file (`.env.example` lists
+them). The kitchen CLI runs inside the service container, which already has the token.
+
 - **Kitchen token:** the restaurant routes (list all orders, advance one) need a `Kitchen-Token`
   header that matches the service's `KITCHEN_TOKEN`. Pick any value and give the same one to the
   service and the kitchen CLI (`dev-secret` above is only an example). Without it the service still
@@ -229,8 +243,8 @@ idempotency keys with a unique constraint.
   builder on their own ports, builds an order in Chromium, and places it; CI runs it on every
   change. Everything else in the UI is covered by unit tests of its pure logic (`draft.ts`,
   `api.ts`), not by component tests.
-- **No docker compose** and no production build served by the service; run with the two commands
-  above.
+- **No production build.** Both `npm run web` and `docker compose up` run the Vite dev server;
+  the service doesn't serve a built builder.
 - **The menu is compiled into both apps.** Changing it means redeploying both; a version skew is
   caught by the `expectedTotalCents` check rather than prevented. Next: serve the menu from the
   service.

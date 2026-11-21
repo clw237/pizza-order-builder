@@ -74,7 +74,7 @@ Each slice is runnable and tested on its own.
 5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must) ✅
 6. Kitchen CLI and optional timer. (must: CLI; cut first: timer) ✅
 7. TMNT / Magic theme. (cut for now: parked on `feature/theme`)
-8. `docker compose up`. (only if time remains after 10–13)
+8. `docker compose up`. (only if time remains after 10–13) ✅
 9. README ✅, mock AI evaluation ✅, fixes (PR #11).
 
 ### 5.1 Next, from the owner's decision review
