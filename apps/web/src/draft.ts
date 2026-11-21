@@ -34,6 +34,9 @@ function newLine(sizeId = "medium"): DraftLine {
   return { key: nextKey++, sizeId, quantity: 1, toppingIds: [] };
 }
 
+/** Hint for the promo field. It must never be a working code, or every customer gets the discount. */
+export const PROMO_PLACEHOLDER = "Enter a promo code";
+
 export function emptyDraft(): Draft {
   return {
     lines: [newLine()],

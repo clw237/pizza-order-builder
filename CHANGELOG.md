@@ -51,6 +51,7 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 - The builder now keeps the `Idempotency-Key` when the last retry ends in a server error, so
   pressing Send again can't create a second order.
 - The tax label is built from the menu's tax rate instead of a hard-coded "6.5%".
+- The promo code field's hint says "Enter a promo code" instead of showing a working code (#16).
 
 ### Security
 

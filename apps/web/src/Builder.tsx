@@ -7,6 +7,7 @@ import {
   type Quote,
 } from "@pizza/pricing";
 import {
+  PROMO_PLACEHOLDER,
   addLine,
   removeLine,
   toggleTopping,
@@ -135,7 +136,7 @@ export function Builder({ draft, onChange, errors }: BuilderProps) {
       <h3>Promo codes</h3>
       <input
         aria-label="Promo codes"
-        placeholder="e.g. ILOVEPIZZA"
+        placeholder={PROMO_PLACEHOLDER}
         value={draft.promoText}
         onChange={(e) => onChange({ ...draft, promoText: e.target.value })}
       />
