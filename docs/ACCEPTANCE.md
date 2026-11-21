@@ -59,6 +59,7 @@ Each percentage is rounded once, half to even, at order level.
 | OB-3 | Quantity 0, -1, 1.5, 100, "abc"                                      | Rejected with a clear message (client and server)          | [A]    |
 | OB-4 | Same topping twice on one pizza                                      | Rejected by server (400); UI can't produce it              | [A]    |
 | OB-5 | Unknown size or topping id sent to server                            | 400 naming the field                                       | [A]    |
+| OB-6 | The promo field's hint text                                          | "Enter a promo code"; never a working code                 | [A]    |
 
 ## R2. Running total (one source of truth)
 

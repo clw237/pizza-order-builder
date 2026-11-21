@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { PROMOS } from "@pizza/pricing";
 import {
   addLine,
   emptyDraft,
   evaluate,
   fromOrderInput,
+  PROMO_PLACEHOLDER,
   removeLine,
   toggleTopping,
   updateLine,
@@ -66,5 +68,15 @@ describe("order builder draft", () => {
       tip: { mode: "dollars" as const, value: "2" },
     };
     expect(evaluate(fromOrderInput(input)).input).toEqual(input);
+  });
+});
+
+describe("promo code field", () => {
+  it("OB-6 the hint text never shows a working promo code", () => {
+    const hint = PROMO_PLACEHOLDER.toUpperCase();
+    for (const promo of PROMOS) {
+      expect(hint).not.toContain(promo.code.toUpperCase());
+    }
+    expect(PROMO_PLACEHOLDER).toBe("Enter a promo code");
   });
 });
