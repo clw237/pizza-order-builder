@@ -74,7 +74,7 @@ Each slice is runnable and tested on its own.
 4. Service: endpoints, state machine, idempotency, versioning, race tests. (must) ✅
 5. Web UI: builder, live total, submit with retry, status, edit and cancel. (must) ✅
 6. Kitchen CLI and optional timer. (must: CLI; cut first: timer) ✅
-7. TMNT / Magic theme. (styling only) ✅
+7. TMNT / Magic theme. (styling only, PR #37) ✅
 8. `docker compose up`. (only if time remains after 10–13) ✅
 9. README ✅, mock AI evaluation ✅, fixes (PR #11).
 
@@ -110,8 +110,8 @@ criteria, order of operations, promo edge cases and conflict rule, `expectedTota
 in-memory storage, idempotency keys and `If-Match`, synchronous check-and-set with polling (no
 push yet), linear statuses plus Cancelled, kitchen endpoint + CLI + optional timer, Vite proxy and
 retries, input limits. Changed: rounding (§5.1 item 10), kitchen token (11), e2e test (12), README
-(13). Deferred: theme, double toppings, SSE push. Owner to do: import the `main` ruleset; run the
-rounding check personally after item 10, then the AI note's "verified" bullet is reworded in the
+(13). Deferred: double toppings, SSE push (the theme, deferred here too, shipped later as §5
+item 7). Owner to do: import the `main` ruleset; run the rounding check personally after item 10, then the AI note's "verified" bullet is reworded in the
 owner's voice.
 
 Final-hour decisions:
@@ -120,5 +120,9 @@ Final-hour decisions:
 - The CI `compose` job stays an optional check; the `main` ruleset is unchanged.
 - No local `docker compose` rebuild or smoke test in the final hour; the CI `compose` job covers
   it. `ci.yml` is unchanged, to save time for the theme.
+- The theme was rebuilt on `main` rather than merging the stale `feature/theme`
+  branch. It keeps TMNT colours and the "Cowabunga!" catchphrase but no names or art, uses local
+  fonts only (no web-font fetch), and changes styling and copy only, never prices or behaviour.
+  E2E-3 covers the topping cards.
 - Customers track an order by its ID (S-19, E2E-2). The UUID stays the only capability; no
   accounts or extra secret.
