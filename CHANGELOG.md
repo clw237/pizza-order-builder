@@ -29,6 +29,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
   `OrderStore.transition` method shared by the routes and the timer.
 - README: run commands, API reference, assumptions, design write-up, tested invariants and AI
   usage.
+- `docker compose up --build` runs the service and the builder in two containers from one
+  image, with health checks; `scripts/compose-smoke.sh` checks the running stack, and CI runs both.
 
 ### Changed
 
