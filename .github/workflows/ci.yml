@@ -38,6 +38,17 @@ jobs:
       - name: End-to-end smoke test
         run: npm run e2e
 
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
   compose:
     # Builds the image, starts the stack the README documents and runs the smoke script against it.
     runs-on: ubuntu-latest
