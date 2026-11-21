@@ -122,7 +122,8 @@ Final-hour decisions:
 - No local `docker compose` rebuild or smoke test in the final hour; the CI `compose` job covers
   it. `ci.yml` is unchanged, to save time for the theme.
 - The theme was rebuilt on `main` rather than merging the stale `feature/theme`
-  branch. It keeps TMNT colours and the "Cowabunga!" catchphrase but no names or art, uses local
+  branch. It keeps TMNT colours but no names or art (the catchphrase and flavour text were removed
+  before submission), uses local
   fonts only (no web-font fetch), and changes styling and copy only, never prices or behaviour.
   E2E-3 covers the topping cards.
 - Customers track an order by its ID (S-19, E2E-2). The UUID stays the only capability; no

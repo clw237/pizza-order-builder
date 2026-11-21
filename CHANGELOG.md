@@ -70,6 +70,8 @@ Headings, in this order: Added, Changed, Fixed, Removed, Security, Development.
 
 ### Development
 
+- Order statuses and their labels are defined once, in `@pizza/pricing`, and shared by the
+  service and the builder (#32). The API reference moved from the README to `docs/API.md`.
 - Browser smoke test (E2E-1, Playwright `1.63.0`): starts the service and the builder, builds an
   order and places it. E2E-2 tracks a placed order by its ID after a reload. `npm run e2e`; CI installs Chromium and runs it.
 - When the browser test fails in CI, its trace, screenshot and HTML report are uploaded as the

@@ -203,13 +203,13 @@ Each percentage is rounded once, half to even, at order level.
 
 - [x] Hosted git repo, readable commit history
 - [x] README: run builder, run service, run tests (one or two commands each)
-- [x] README: API summary with example requests
+- [x] API summary in the README, with example requests in `docs/API.md`
 - [x] README: Assumptions (the list above, kept in sync)
 - [x] README: design write-up (money, extensibility, lifecycle walk-throughs, cuts and next steps)
 - [x] README: AI usage note (tools, one rejected output, one invariant verified by hand)
 - [x] README: which invariants are tested and why, which aren't
 - [x] `bash scripts/check.sh` green
-- [x] README has a requirement → code → test traceability table (IDs from this file)
+- [x] A requirement → code → test traceability table (IDs from this file), at the end of this file
 - [x] Test names start with the ID they cover (e.g. `PR-7 SAVE5 wins when it saves more`)
 
 ## Mock AI evaluation (before submitting)

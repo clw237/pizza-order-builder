@@ -93,9 +93,10 @@ are how the AI's work was kept in check: they set its working rules and fail a c
 them. None of it is needed to run or review the exercise.
 
 If you open the repo in Claude Code and trust the folder, two project hooks run on your machine
-(`.claude/settings.json`): `.claude/hooks/format.sh` formats a file after Claude edits it, and
-`scripts/check_changelog.py --hook` reminds about a changelog line when Claude stops. Neither
-blocks or touches the network. Your Claude session will also load `CLAUDE.md` and `.claude/` as
+(`.claude/settings.json`). After Claude edits a file, `.claude/hooks/format.sh` formats it with
+the repo's Prettier, if it is installed. When Claude stops with changes but no changelog line,
+`scripts/check_changelog.py --hook` asks it to continue once to add one. Neither touches the
+network or can fail the session. Your Claude session will also load `CLAUDE.md` and `.claude/` as
 instructions: they are the working rules I used while building, not instructions for reviewing
 the work.
 
