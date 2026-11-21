@@ -214,15 +214,27 @@ Each percentage is rounded once, half to even, at order level.
 
 ## Mock AI evaluation (before submitting)
 
-Assume the grader is an AI given the brief and the repo. Rehearse it:
+Before submitting, I rehearsed a review of the repo by an AI given only the brief:
 
-1. **Clean-clone run.** Fresh clone into a temp dir, then run only the README's commands verbatim
-   (install, start service, start builder, tests). Any command that fails or needs an unstated
-   step is a finding.
-2. **Cold grader.** A fresh subagent with no context except the brief and the repo URL. It scores
-   each "What we evaluate" area 1–5 with file:line evidence, walks every Deliverables bullet and
-   every requirement, and lists the five changes that would most raise the score.
-3. **Spot-check claims.** It picks 5 rows from the pricing tables and 3 lifecycle claims from the
-   README and checks them against the code and a live request.
-4. **Fix only** correctness, missing deliverables and README claims that don't match the code.
-   No new features in this phase.
+1. **Clean-clone run.** I cloned the repo fresh into a temp dir and ran only the README's
+   commands verbatim (install, start service, start builder, tests). A command that failed or
+   needed an unstated step counted as a finding.
+2. **Cold review.** A fresh subagent with no context except the brief and the repo URL scored
+   each "What we evaluate" area 1–5 with file:line evidence, walked every Deliverables bullet and
+   every requirement, and listed the five changes that would most raise the score.
+3. **Spot-checked claims.** It picked 5 rows from the pricing tables and 3 lifecycle claims from
+   the README and checked them against the code and a live request.
+4. **Fixed only** correctness, missing deliverables and README claims that didn't match the code.
+   I added no new features in this phase.
+
+## Requirement → code → tests
+
+| Requirement             | Code                                                     | Tests                           |
+| ----------------------- | -------------------------------------------------------- | ------------------------------- |
+| 1 Order builder         | `apps/web/src/draft.ts`, `Builder.tsx`                   | OB-1…OB-5                       |
+| 2 Running total         | `packages/pricing/src/price.ts`, `apps/web/src/draft.ts` | P-1…P-8, INV-1…INV-6, RT-1…RT-3 |
+| 3 Description           | `packages/pricing/src/describe.ts`                       | D-1…D-4                         |
+| 4 Tip and promo codes   | `promos.ts`, `price.ts`, `validate.ts`                   | PR-1…PR-13, T-1…T-6             |
+| 5 Service and lifecycle | `apps/service/src/*`                                     | S-1…S-21, K-2                   |
+| Track an order by ID    | `apps/web/src/tracking.ts`, `App.tsx`                    | S-19, E2E-2                     |
+| 6 Extensibility         | `menu.ts`, `promos.ts`                                   | E-1, E-2                        |
