@@ -163,7 +163,7 @@ Where the brief left something open, this is what I decided. Each one is impleme
    total. "Tax on the total order" is read as the discounted food total, before tip.
 3. **Rounding:** money is integer cents. Discount, tax and a percentage tip are each rounded once,
    half to even (banker's rounding), at the order level (never per line). An exact half cent goes
-   to the even cent, so ties don't always round up. Example: tax on $5.00 is 32.5¢ → 32¢, and tax
+   to the even cent, so ties don't always round up (why: Design write-up, Money). Example: tax on $5.00 is 32.5¢ → 32¢, and tax
    on $7.00 is 45.5¢ → 46¢.
 4. **Tip percentage** is of the bill after discount and tax. The tip is not taxed.
 5. **SAVE5** needs a subtotal strictly over $20.00, measured before tax and before any discount.
@@ -200,6 +200,27 @@ Money is an integer number of cents everywhere; percentages are basis points (8%
 and sends a remainder of exactly 5000 to the even cent: half-to-even rounding in integer
 arithmetic, so no floating-point value ever represents money. Tips arrive as text and are parsed
 straight into cents or basis points.
+
+**Why half to even rather than half up.** The rounding rule is assumption 3, chosen on
+purpose:
+
+- **No bias.** Half up sends every exact half cent up, so over many orders the store collects a
+  little more tax and discounts a little less than the true amounts. Half to even sends half the
+  ties up and half down, so the rounding errors cancel out instead of adding up.
+- **Ties really happen here.** With 6.5% tax, ordinary prices land on exact half cents: tax on
+  $5.00 is 32.5¢ and on $7.00 is 45.5¢. The rule shows on a plain small or medium pizza, not only in
+  edge cases.
+- **It's the standard default for ties.** It's IEEE 754's default rounding mode and what Python's
+  `round()` and .NET's `Math.Round` do; it's also known as banker's rounding.
+- **It's one rule, applied once.** Discount, tax and a percentage tip each round once at order
+  level, all through `applyRate`, so the builder and the service always agree to the cent.
+
+The trade-off: someone checking a tie by hand with the school rule (round half up) can get 1¢ more
+(32.5¢ → 33¢),
+and many US states' sales-tax rules say to round a half cent up. That's why assumption 3 spells
+out the rule with a worked example. A real store would follow its tax authority, and that is a
+one-line change in `applyRate`, with the tie cases pinned by tests (P-1, P-3, PR-8, T-6) so the
+change would be test-guided.
 
 All pricing lives in one pure function, `priceOrder(order, menu, promos)` in `packages/pricing`.
 **It runs in both places, and the service is the authority.** The builder calls it on every change
@@ -364,6 +385,14 @@ myself.
   `Idempotency-Key` when the last automatic retry ended in a server error, so pressing Send again
   sent a new key and could create a second order. The fix (PR #11) keeps the key until the
   service gives a definite answer, with a unit test of that rule; the same pass also caught a hard-coded tax label.
+- **Separate Claude sessions, each with one job.** Alongside the build session I ran:
+  - **a persona-based evaluation:** a new session given only the repo and the brief, asked to
+    evaluate the submission as an evaluator hiring for the role;
+  - **a feedback and issue session** that captured my feedback and managed it as GitHub issues,
+    with priorities and decided or open questions, which the build sessions then worked from;
+  - **a penetration test session** that probed the service and the repo, then logged every
+    finding as a prioritized `security` issue (#39 to #47), confirming several against a running
+    service.
 - **Verified rather than trusted:** every expected total in `docs/ACCEPTANCE.md` was recomputed
   with a separate script before it became a test. After the switch to banker's rounding I broke the
   rounding myself to see whether the tests notice: truncating fails 15 tests, and going back to
