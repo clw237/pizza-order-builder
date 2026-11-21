@@ -36,7 +36,9 @@ KITCHEN_TOKEN=dev-secret bash scripts/compose-smoke.sh   # optional check of the
 The same image runs both apps as separate containers; the builder's container forwards `/api/*`
 to the `service` container. Ports are published on `127.0.0.1` only. `KITCHEN_TOKEN` and
 `KITCHEN_AUTO_ADVANCE_SECONDS` are read from your shell or a `.env` file (`.env.example` lists
-them). The kitchen CLI runs inside the service container, which already has the token.
+them). Set the token when you run `up`: the containers keep the value they started with,
+and the kitchen CLI inside the service container uses that same value. Started without one, the
+restaurant routes and the CLI refuse every request until you run `up` again with a token.
 
 - **Kitchen token:** the restaurant routes (list all orders, advance one) need a `Kitchen-Token`
   header that matches the service's `KITCHEN_TOKEN`. Pick any value and give the same one to the

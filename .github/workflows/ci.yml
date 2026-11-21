@@ -41,6 +41,7 @@ jobs:
   compose:
     # Builds the image, starts the stack the README documents and runs the smoke script against it.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       KITCHEN_TOKEN: ci-only-placeholder
     steps:
